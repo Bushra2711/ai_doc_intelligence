@@ -21,3 +21,5 @@ DocuMind AI is an enterprise-grade intelligent document processing platform for 
 After dependencies are installed, run the backend from `backend/` with `uvicorn app.main:app --reload`, then run the frontend with `npm run dev` from `frontend/`.
 
 Copy `backend/.env.example` to `backend/.env` and provide the database, JWT, and Gemini settings before starting the API.
+
+<!-- ChatGPT Codex Connector write test -->
