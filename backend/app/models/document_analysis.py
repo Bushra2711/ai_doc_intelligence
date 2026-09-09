@@ -301,6 +301,11 @@ class DocumentAnalysis(Base):
         String(100),
         nullable=True,
     )
+    compliance_alerts: Mapped[str] = mapped_column(
+    Text,
+    nullable=False,
+    default="[]",
+)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

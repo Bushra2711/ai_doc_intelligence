@@ -180,73 +180,99 @@ function Detail({
     )}
 
     {/* Resume / Bio-Data */}
-    {analysis.document_type === "Resume" && (
-      <div className="extracted-fields">
-        <h4>Extracted Fields</h4>
+{analysis.document_type === "Resume" && (
+  <div className="extracted-fields">
+    <h4>Extracted Fields</h4>
 
-        <div className="field-grid">
-          <div className="field-item">
-            <span>Full Name</span>
-            <strong>{analysis.full_name || "N/A"}</strong>
-          </div>
+    <div className="field-grid">
 
-          <div className="field-item">
-            <span>Date of Birth</span>
-            <strong>{analysis.date_of_birth || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Email</span>
-            <strong>{analysis.email || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Phone</span>
-            <strong>{analysis.phone || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Education</span>
-            <strong>{analysis.education || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Skills</span>
-            <strong>{analysis.skills || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Experience</span>
-            <strong>{analysis.experience || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Height</span>
-            <strong>{analysis.height || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Father Name</span>
-            <strong>{analysis.father_name || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Father Occupation</span>
-            <strong>{analysis.father_occupation || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Mother Occupation</span>
-            <strong>{analysis.mother_occupation || "N/A"}</strong>
-          </div>
-
-          <div className="field-item">
-            <span>Siblings</span>
-            <strong>{analysis.siblings || "N/A"}</strong>
-          </div>
+      {analysis.full_name && (
+        <div className="field-item">
+          <span>Full Name</span>
+          <strong>{analysis.full_name}</strong>
         </div>
-      </div>
-    )}
+      )}
+
+      {analysis.date_of_birth && (
+        <div className="field-item">
+          <span>Date of Birth</span>
+          <strong>{analysis.date_of_birth}</strong>
+        </div>
+      )}
+
+      {analysis.email && (
+        <div className="field-item">
+          <span>Email</span>
+          <strong>{analysis.email}</strong>
+        </div>
+      )}
+
+      {analysis.phone && (
+        <div className="field-item">
+          <span>Phone</span>
+          <strong>{analysis.phone}</strong>
+        </div>
+      )}
+
+      {analysis.education && (
+        <div className="field-item">
+          <span>Education</span>
+          <strong>{analysis.education}</strong>
+        </div>
+      )}
+
+      {analysis.skills && (
+        <div className="field-item">
+          <span>Skills</span>
+          <strong>{analysis.skills}</strong>
+        </div>
+      )}
+
+      {analysis.experience && (
+        <div className="field-item">
+          <span>Experience</span>
+          <strong>{analysis.experience}</strong>
+        </div>
+      )}
+
+      {analysis.height && (
+        <div className="field-item">
+          <span>Height</span>
+          <strong>{analysis.height}</strong>
+        </div>
+      )}
+
+      {analysis.father_name && (
+        <div className="field-item">
+          <span>Father Name</span>
+          <strong>{analysis.father_name}</strong>
+        </div>
+      )}
+
+      {analysis.father_occupation && (
+        <div className="field-item">
+          <span>Father Occupation</span>
+          <strong>{analysis.father_occupation}</strong>
+        </div>
+      )}
+
+      {analysis.mother_occupation && (
+        <div className="field-item">
+          <span>Mother Occupation</span>
+          <strong>{analysis.mother_occupation}</strong>
+        </div>
+      )}
+
+      {analysis.siblings && (
+        <div className="field-item">
+          <span>Siblings</span>
+          <strong>{analysis.siblings}</strong>
+        </div>
+      )}
+
+    </div>
+  </div>
+)}
 
     <h4>Summary</h4>
     <p>{analysis.summary}</p>

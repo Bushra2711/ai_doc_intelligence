@@ -146,6 +146,7 @@ class DocumentAnalysisResponse(DocumentAnalysisBase):
     invoice_date: str | None = None
     total_amount: str | None = None
     gst: str | None = None
+    compliance_alerts: str
 
     # =========================
     # Resume / Bio-Data fields
