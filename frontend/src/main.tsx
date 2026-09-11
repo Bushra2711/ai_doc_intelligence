@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import "./styles/globals.css";
+import "./styles/confidence.css";
 
 ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
