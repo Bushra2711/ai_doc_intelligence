@@ -6,6 +6,23 @@ from decimal import Decimal, InvalidOperation
 
 
 @dataclass(slots=True)
+class InvoiceLineItem:
+    line_number: int | None = None
+    description: str | None = None
+    hsn_code: str | None = None
+    quantity: float | None = None
+    unit_price: float | None = None
+    amount: float | None = None
+
+
+@dataclass(slots=True)
+class TaxBreakdown:
+    tax_type: str
+    rate: float | None = None
+    amount: float | None = None
+
+
+@dataclass(slots=True)
 class InvoiceFields:
     invoice_number: str | None = None
     invoice_date: str | None = None
@@ -19,6 +36,8 @@ class InvoiceFields:
     total_amount: float | None = None
     currency: str | None = None
     po_number: str | None = None
+    tax_breakdown: list[TaxBreakdown] | None = None
+    line_items: list[InvoiceLineItem] | None = None
 
 
 GSTIN_PATTERN = re.compile(r"\b\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]\b", re.IGNORECASE)
@@ -50,9 +69,18 @@ def _parse_amount(value: str | None) -> float | None:
         return None
 
 
+def _parse_number(value: str | None) -> float | None:
+    if not value:
+        return None
+    try:
+        return float(Decimal(value.replace(",", "").strip()))
+    except (InvalidOperation, ValueError):
+        return None
+
+
 def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
     label_pattern = "|".join(re.escape(label) for label in labels)
-    pattern = rf"(?:{label_pattern})\s*(?:[:=-])?\s*(?:INR|Rs\.?|₹|USD|EUR|\$|€)?\s*([0-9][0-9,]*(?:\.\d{{1,2}})?)"
+    pattern = rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=-])?\s*(?:INR|Rs\.?|₹|USD|EUR|\$|€)?\s*([0-9][0-9,]*(?:\.\d{{1,2}})?)"
     match = re.search(pattern, text, flags=re.IGNORECASE)
     return _parse_amount(match.group(1)) if match else None
 
@@ -75,12 +103,55 @@ def _extract_party_name(text: str, labels: tuple[str, ...]) -> str | None:
     return _first_group(text, (pattern,))
 
 
+def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
+    taxes: list[TaxBreakdown] = []
+    pattern = re.compile(
+        r"\b(CGST|SGST|IGST|UTGST|GST)\s*(?:\((\d+(?:\.\d+)?)%\))?\s*[:=-]?\s*(?:INR|Rs\.?|₹)?\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
+        flags=re.IGNORECASE,
+    )
+    for match in pattern.finditer(text):
+        taxes.append(
+            TaxBreakdown(
+                tax_type=match.group(1).upper(),
+                rate=_parse_number(match.group(2)),
+                amount=_parse_amount(match.group(3)),
+            )
+        )
+    return taxes
+
+
+def _extract_line_items(text: str) -> list[InvoiceLineItem]:
+    items: list[InvoiceLineItem] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.lower().startswith("s.no"):
+            continue
+
+        match = re.match(
+            r"^(\d+)\s+(.+?)\s+(\d{6,8})\s+(\d+(?:\.\d+)?)\s+([0-9][0-9,]*(?:\.\d{1,2})?)\s+([0-9][0-9,]*(?:\.\d{1,2})?)\s*$",
+            line,
+        )
+        if not match:
+            continue
+
+        items.append(
+            InvoiceLineItem(
+                line_number=int(match.group(1)),
+                description=_clean(match.group(2)),
+                hsn_code=match.group(3),
+                quantity=_parse_number(match.group(4)),
+                unit_price=_parse_amount(match.group(5)),
+                amount=_parse_amount(match.group(6)),
+            )
+        )
+    return items
+
+
 def extract_invoice_fields(text: str) -> InvoiceFields:
-    """Extract common invoice fields from OCR or embedded document text.
+    """Extract common invoice fields, tax breakdown, and line items.
 
     This is a deterministic baseline extractor. It intentionally returns None
-    when a field cannot be identified instead of inventing a value. A later
-    AI/ML extractor can be layered on top of this contract.
+    or an empty list when a field cannot be identified instead of inventing data.
     """
     normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
 
@@ -93,15 +164,11 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     )
     invoice_date = _first_group(
         normalized_text,
-        (
-            rf"(?:invoice\s*date|date\s*of\s*invoice)\s*[:=-]?\s*({DATE_PATTERN})",
-        ),
+        (rf"(?:invoice\s*date|date\s*of\s*invoice)\s*[:=-]?\s*({DATE_PATTERN})",),
     )
     due_date = _first_group(
         normalized_text,
-        (
-            rf"(?:due\s*date|payment\s*due)\s*[:=-]?\s*({DATE_PATTERN})",
-        ),
+        (rf"(?:due\s*date|payment\s*due)\s*[:=-]?\s*({DATE_PATTERN})",),
     )
 
     gstins = [match.upper() for match in GSTIN_PATTERN.findall(normalized_text)]
@@ -119,9 +186,7 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
 
     po_number = _first_group(
         normalized_text,
-        (
-            r"(?:purchase\s*order|po)\s*(?:no|number|#)?\s*[:=-]?\s*([^\n|]+)",
-        ),
+        (r"(?:purchase\s*order|po)\s*(?:no|number|#)?\s*[:=-]?\s*([^\n|]+)",),
     )
 
     subtotal = _extract_labeled_amount(
@@ -147,6 +212,8 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
         total_amount=total_amount,
         currency=_extract_currency(normalized_text),
         po_number=po_number,
+        tax_breakdown=_extract_tax_breakdown(normalized_text),
+        line_items=_extract_line_items(normalized_text),
     )
 
 
