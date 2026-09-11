@@ -79,12 +79,12 @@ def _parse_number(value: str | None) -> float | None:
 
 
 def _amount_pattern() -> str:
-    # OCR can insert spaces inside a number, e.g. "7 96,170.00".
+    # OCR can insert spaces inside a number, e.g. "7 96,170. 00".
     return r"([0-9][0-9,]*(?:\s[0-9][0-9,]*)*(?:\.\s*[0-9]{1,2})?)"
 
 
 def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
-    label_pattern = "|".join(re.escape(label) for label in labels)
+    label_pattern = "|".join(rf"\b{re.escape(label)}\b" for label in labels)
     pattern = rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=\-])?\s*(?:INR|Rs\.?|₹|USD|EUR|\$|€)?\s*{_amount_pattern()}"
     match = re.search(pattern, text, flags=re.IGNORECASE)
     return _parse_amount(match.group(1)) if match else None
@@ -143,7 +143,7 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
     items: list[InvoiceLineItem] = []
     amount = r"[0-9][0-9,]*(?:\.\s*[0-9]{1,2})?"
     for line in text.splitlines():
-        line = line.strip()
+        line = line.strip().rstrip("|").strip()
         if not line or line.lower().startswith("s.no"):
             continue
         match = re.match(
@@ -198,7 +198,6 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
         ("buyer", "customer", "bill to", "billed to", "buyer name", "customer name"),
     )
 
-    # Many invoices use "Order No" for the purchase order reference.
     po_number = _first_group(
         normalized_text,
         (r"(?:purchase\s*order|order|po)\s*(?:no|number|#)?\s*[:=-]?\s*(PO[-\w]+)",),
@@ -210,9 +209,14 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     taxes = _extract_tax_breakdown(normalized_text)
     explicit_tax = _extract_labeled_amount(normalized_text, ("tax amount", "total tax", "gst amount"))
     tax_amount = explicit_tax if explicit_tax is not None else (sum(t.amount for t in taxes if t.amount is not None) or None)
+
+    # Use specific total labels and word boundaries so "Total" never matches "Subtotal".
     total_amount = _extract_labeled_amount(
-        normalized_text, ("grand total", "invoice total", "total amount", "amount due", "total")
+        normalized_text, ("grand total", "invoice total", "total amount", "amount due")
     )
+    if total_amount is None:
+        # Last-resort OCR fallback: a standalone Total label.
+        total_amount = _extract_labeled_amount(normalized_text, ("total",))
 
     return InvoiceFields(
         invoice_number=invoice_number,
