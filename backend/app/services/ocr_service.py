@@ -5,6 +5,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Windows installation path used by the official Tesseract installer.
+# pytesseract can also use Tesseract from PATH when it is configured.
+TESSERACT_EXE = Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+
 
 class OCRError(Exception):
     """Base error raised by OCR operations."""
@@ -22,6 +26,11 @@ def _load_ocr_dependencies():
         raise OCRDependencyError(
             "OCR dependencies are not installed. Install pytesseract and Pillow."
         ) from exc
+
+    # Prefer the standard Windows installation path when it exists. This avoids
+    # requiring users to manually configure the Windows PATH variable.
+    if TESSERACT_EXE.is_file():
+        pytesseract.pytesseract.tesseract_cmd = str(TESSERACT_EXE)
 
     try:
         pytesseract.get_tesseract_version()
