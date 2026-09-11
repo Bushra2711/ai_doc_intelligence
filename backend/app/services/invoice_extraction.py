@@ -73,14 +73,19 @@ def _parse_number(value: str | None) -> float | None:
     if not value:
         return None
     try:
-        return float(Decimal(value.replace(",", "").strip()))
+        return float(Decimal(re.sub(r"\s+", "", value).replace(",", "").strip()))
     except (InvalidOperation, ValueError):
         return None
 
 
+def _amount_pattern() -> str:
+    # OCR can insert spaces inside a number, e.g. "7 96,170.00".
+    return r"([0-9][0-9,]*(?:\s[0-9][0-9,]*)*(?:\.\s*[0-9]{1,2})?)"
+
+
 def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
     label_pattern = "|".join(re.escape(label) for label in labels)
-    pattern = rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=-])?\s*(?:INR|Rs\.?|₹|USD|EUR|\$|€)?\s*([0-9][0-9,]*(?:\.\d{{1,2}})?)"
+    pattern = rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=\-])?\s*(?:INR|Rs\.?|₹|USD|EUR|\$|€)?\s*{_amount_pattern()}"
     match = re.search(pattern, text, flags=re.IGNORECASE)
     return _parse_amount(match.group(1)) if match else None
 
@@ -98,15 +103,29 @@ def _extract_currency(text: str) -> str | None:
 
 
 def _extract_party_name(text: str, labels: tuple[str, ...]) -> str | None:
+    lines = text.splitlines()
     label_pattern = "|".join(re.escape(label) for label in labels)
-    pattern = rf"(?:{label_pattern})\s*(?:[:=-])?\s*([^\n|]+)"
-    return _first_group(text, (pattern,))
+    same_line = re.compile(rf"(?:{label_pattern})\s*(?:[:=-])?\s*([^\n|]+)", re.IGNORECASE)
+    next_line = re.compile(rf"^\s*(?:{label_pattern})\s*[:=-]?\s*$", re.IGNORECASE)
+
+    for index, line in enumerate(lines):
+        match = same_line.search(line)
+        if match:
+            value = _clean(match.group(1))
+            if value and value.lower() not in {"gstin", "gstin:"}:
+                return value
+        if next_line.match(line):
+            for candidate in lines[index + 1 : index + 3]:
+                value = _clean(candidate)
+                if value and not re.search(r"\bgstin\b", value, re.IGNORECASE):
+                    return value
+    return None
 
 
 def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
     taxes: list[TaxBreakdown] = []
     pattern = re.compile(
-        r"\b(CGST|SGST|IGST|UTGST|GST)\s*(?:\((\d+(?:\.\d+)?)%\))?\s*[:=-]?\s*(?:INR|Rs\.?|₹)?\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
+        rf"\b(CGST|SGST|IGST|UTGST|GST)\s*(?:\((\d+(?:\.\d+)?)%\))?\s*[:=-]?\s*(?:INR|Rs\.?|₹)?\s*{_amount_pattern()}",
         flags=re.IGNORECASE,
     )
     for match in pattern.finditer(text):
@@ -122,18 +141,17 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
 
 def _extract_line_items(text: str) -> list[InvoiceLineItem]:
     items: list[InvoiceLineItem] = []
+    amount = r"[0-9][0-9,]*(?:\.\s*[0-9]{1,2})?"
     for line in text.splitlines():
         line = line.strip()
         if not line or line.lower().startswith("s.no"):
             continue
-
         match = re.match(
-            r"^(\d+)\s+(.+?)\s+(\d{6,8})\s+(\d+(?:\.\d+)?)\s+([0-9][0-9,]*(?:\.\d{1,2})?)\s+([0-9][0-9,]*(?:\.\d{1,2})?)\s*$",
+            rf"^(\d+)\s+(.+?)\s+(\d{{6,8}})\s+(\d+(?:\.\d+)?)\s+({amount})\s+({amount})\s*$",
             line,
         )
         if not match:
             continue
-
         items.append(
             InvoiceLineItem(
                 line_number=int(match.group(1)),
@@ -148,11 +166,7 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
 
 
 def extract_invoice_fields(text: str) -> InvoiceFields:
-    """Extract common invoice fields, tax breakdown, and line items.
-
-    This is a deterministic baseline extractor. It intentionally returns None
-    or an empty list when a field cannot be identified instead of inventing data.
-    """
+    """Extract common invoice fields, including common OCR line layouts."""
     normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     invoice_number = _first_group(
@@ -184,17 +198,18 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
         ("buyer", "customer", "bill to", "billed to", "buyer name", "customer name"),
     )
 
+    # Many invoices use "Order No" for the purchase order reference.
     po_number = _first_group(
         normalized_text,
-        (r"(?:purchase\s*order|po)\s*(?:no|number|#)?\s*[:=-]?\s*([^\n|]+)",),
+        (r"(?:purchase\s*order|order|po)\s*(?:no|number|#)?\s*[:=-]?\s*(PO[-\w]+)",),
     )
 
     subtotal = _extract_labeled_amount(
         normalized_text, ("subtotal", "sub total", "taxable value", "net amount")
     )
-    tax_amount = _extract_labeled_amount(
-        normalized_text, ("tax amount", "total tax", "gst amount", "igst", "cgst", "sgst")
-    )
+    taxes = _extract_tax_breakdown(normalized_text)
+    explicit_tax = _extract_labeled_amount(normalized_text, ("tax amount", "total tax", "gst amount"))
+    tax_amount = explicit_tax if explicit_tax is not None else (sum(t.amount for t in taxes if t.amount is not None) or None)
     total_amount = _extract_labeled_amount(
         normalized_text, ("grand total", "invoice total", "total amount", "amount due", "total")
     )
@@ -212,7 +227,7 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
         total_amount=total_amount,
         currency=_extract_currency(normalized_text),
         po_number=po_number,
-        tax_breakdown=_extract_tax_breakdown(normalized_text),
+        tax_breakdown=taxes,
         line_items=_extract_line_items(normalized_text),
     )
 
