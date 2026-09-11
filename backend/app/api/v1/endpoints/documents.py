@@ -18,6 +18,7 @@ from app.schemas.document_text import (
 )
 from app.models.user import User
 from app.schemas.document import DocumentResponse
+from app.schemas.invoice_extraction import InvoiceExtractionResponse
 from app.services.document_ingestion import (
     DocumentIngestionError,
     FileTooLargeError,
@@ -37,6 +38,7 @@ from app.services.document_analysis import (
     ExtractedTextNotFoundError,
     analyze_document,
 )
+from app.services.invoice_extraction import extract_invoice_fields_dict
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -163,6 +165,48 @@ def get_document_text(
         )
 
     return ExtractedDocumentTextResponse.model_validate(extracted_text)
+
+
+@router.post(
+    "/{document_id}/extract-invoice",
+    response_model=InvoiceExtractionResponse,
+)
+def extract_invoice(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> InvoiceExtractionResponse:
+    """Extract structured invoice fields from previously extracted document text."""
+    document = db.scalar(
+        select(Document).where(
+            Document.id == document_id,
+            Document.user_id == current_user.id,
+        )
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    extracted_text = db.scalar(
+        select(ExtractedDocumentText).where(
+            ExtractedDocumentText.document_id == document.id
+        )
+    )
+
+    if extracted_text is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Extracted text not found. Process the document first.",
+        )
+
+    fields = extract_invoice_fields_dict(extracted_text.extracted_text)
+    return InvoiceExtractionResponse(
+        document_id=document.id,
+        fields=fields,
+    )
 
 
 @router.post("/{document_id}/process", response_model=DocumentProcessResponse)
