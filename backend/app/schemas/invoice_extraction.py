@@ -3,6 +3,25 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
 
+class TaxBreakdownResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    tax_type: str
+    rate: float | None = None
+    amount: float | None = None
+
+
+class InvoiceLineItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    line_number: int | None = None
+    description: str | None = None
+    hsn_code: str | None = None
+    quantity: float | None = None
+    unit_price: float | None = None
+    amount: float | None = None
+
+
 class InvoiceFieldsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -18,6 +37,8 @@ class InvoiceFieldsResponse(BaseModel):
     total_amount: float | None = None
     currency: str | None = None
     po_number: str | None = None
+    tax_breakdown: list[TaxBreakdownResponse] = []
+    line_items: list[InvoiceLineItemResponse] = []
 
 
 class InvoiceExtractionResponse(BaseModel):
