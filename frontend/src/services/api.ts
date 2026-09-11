@@ -16,6 +16,44 @@ export type DocumentRecord = {
   created_at: string;
   updated_at: string;
 };
+
+export type TaxBreakdown = {
+  tax_type: string;
+  rate: number | null;
+  amount: number | null;
+};
+
+export type InvoiceLineItem = {
+  line_number: number | null;
+  description: string | null;
+  hsn_code: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  amount: number | null;
+};
+
+export type InvoiceFields = {
+  invoice_number: string | null;
+  invoice_date: string | null;
+  due_date: string | null;
+  vendor_name: string | null;
+  vendor_gstin: string | null;
+  buyer_name: string | null;
+  buyer_gstin: string | null;
+  subtotal: number | null;
+  tax_amount: number | null;
+  total_amount: number | null;
+  currency: string | null;
+  po_number: string | null;
+  tax_breakdown: TaxBreakdown[];
+  line_items: InvoiceLineItem[];
+};
+
+export type InvoiceExtraction = {
+  document_id: string;
+  fields: InvoiceFields;
+};
+
 export type Analysis = {
   id: string;
   document_id: string;
@@ -138,6 +176,7 @@ export const api = {
   analyze: (id: string, token: string) => request<Analysis>(`/documents/${id}/analyze`, { method: "POST" }, token),
   text: (id: string, token: string) => request<ExtractedText>(`/documents/${id}/text`, {}, token),
   analysis: (id: string, token: string) => request<Analysis>(`/documents/${id}/analysis`, {}, token),
+  invoiceExtraction: (id: string, token: string) => request<InvoiceExtraction>(`/documents/${id}/extract-invoice`, {}, token),
   remove: (id: string, token: string) => request<void>(`/documents/${id}`, { method: "DELETE" }, token),
 };
 
