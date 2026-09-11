@@ -79,7 +79,7 @@ def get_document_text(document_id: str, current_user: User = Depends(get_current
     return ExtractedDocumentTextResponse.model_validate(extracted_text)
 
 
-@router.post("/{document_id}/extract-invoice", response_model=InvoiceExtractionResponse)
+@router.get("/{document_id}/extract-invoice", response_model=InvoiceExtractionResponse)
 def extract_invoice(document_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> InvoiceExtractionResponse:
     """Extract structured invoice fields from previously extracted document text."""
     document = db.scalar(select(Document).where(Document.id == document_id, Document.user_id == current_user.id))
