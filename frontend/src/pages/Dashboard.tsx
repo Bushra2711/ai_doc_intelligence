@@ -37,11 +37,12 @@ function Detail({ doc, token, onClose }: { doc: DocumentRecord; token: string; o
   const [text, setText] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof api.analysis>> | null>(null);
   const [invoice, setInvoice] = useState<InvoiceExtraction | null>(null);
+  const [invoiceError, setInvoiceError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setInvoiceError("");
     try {
       const [textResult, analysisResult] = await Promise.allSettled([api.text(doc.id, token), api.analysis(doc.id, token)]);
       if (textResult.status === "fulfilled") setText(textResult.value.extracted_text);
@@ -49,7 +50,8 @@ function Detail({ doc, token, onClose }: { doc: DocumentRecord; token: string; o
       if (analysisResult.status === "fulfilled") {
         setAnalysis(analysisResult.value);
         if (analysisResult.value.document_type === "Invoice") {
-          try { setInvoice(await api.invoiceExtraction(doc.id, token)); } catch { setInvoice(null); }
+          try { setInvoice(await api.invoiceExtraction(doc.id, token)); }
+          catch (err) { setInvoice(null); setInvoiceError(friendlyError(err)); }
         }
       }
     } catch (err) { setError(friendlyError(err)); } finally { setLoading(false); }
@@ -57,13 +59,13 @@ function Detail({ doc, token, onClose }: { doc: DocumentRecord; token: string; o
 
   useEffect(() => { if (doc.status === "completed" || doc.status === "processing") void load(); }, [doc.id, doc.status, token]);
 
-  return <div className="modal-backdrop"><section className="detail-modal"><button className="close-button" onClick={onClose}>×</button><p className="eyebrow cyan">DOCUMENT DETAIL</p><h2>{doc.filename}</h2><div className="detail-meta"><span className={`status ${doc.status}`}><i />{doc.status}</span><span>{doc.file_type}</span><span>{formatBytes(doc.file_size)}</span><span className="uploaded-date">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString()}</span></div>{doc.status === "uploaded" && <div className="alert info">ⓘ Process this document to extract text and generate AI analysis.</div>}{doc.status === "failed" && <div className="alert error">⚠ This document failed to process. Please try again or upload a different file.</div>}{!text && !analysis && !error && doc.status === "completed" && <button className="secondary-button" disabled={loading} onClick={() => void load()}>{loading ? "Loading..." : "Load extracted intelligence"}</button>}{error && <div className="alert">{error}</div>}{text && <div className="detail-section"><h3>Extracted text</h3><pre>{text}</pre></div>}{analysis && <div className="detail-section"><h3>AI analysis <span className="type-badge">{analysis.document_type}</span></h3>{analysis.document_type === "Invoice" && <InvoiceFields invoice={invoice} fallback={analysis} />}{analysis.document_type === "Resume" && <ResumeFields analysis={analysis} />}<h4>Summary</h4><p>{analysis.summary}</p><h4>Key points</h4><pre>{analysis.key_points}</pre><h4>Important information</h4><pre>{analysis.important_information}</pre></div>}</section></div>;
+  return <div className="modal-backdrop"><section className="detail-modal"><button className="close-button" onClick={onClose}>×</button><p className="eyebrow cyan">DOCUMENT DETAIL</p><h2>{doc.filename}</h2><div className="detail-meta"><span className={`status ${doc.status}`}><i />{doc.status}</span><span>{doc.file_type}</span><span>{formatBytes(doc.file_size)}</span><span className="uploaded-date">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString()}</span></div>{doc.status === "uploaded" && <div className="alert info">ⓘ Process this document to extract text and generate AI analysis.</div>}{doc.status === "failed" && <div className="alert error">⚠ This document failed to process. Please try again or upload a different file.</div>}{!text && !analysis && !error && doc.status === "completed" && <button className="secondary-button" disabled={loading} onClick={() => void load()}>{loading ? "Loading..." : "Load extracted intelligence"}</button>}{error && <div className="alert">{error}</div>}{text && <div className="detail-section"><h3>Extracted text</h3><pre>{text}</pre></div>}{analysis && <div className="detail-section"><h3>AI analysis <span className="type-badge">{analysis.document_type}</span></h3>{analysis.document_type === "Invoice" && <InvoiceFields invoice={invoice} fallback={analysis} error={invoiceError} />}{analysis.document_type === "Resume" && <ResumeFields analysis={analysis} />}<h4>Summary</h4><p>{analysis.summary}</p><h4>Key points</h4><pre>{analysis.key_points}</pre><h4>Important information</h4><pre>{analysis.important_information}</pre></div>}</section></div>;
 }
 
-function InvoiceFields({ invoice, fallback }: { invoice: InvoiceExtraction | null; fallback: Awaited<ReturnType<typeof api.analysis>> }) {
+function InvoiceFields({ invoice, fallback, error }: { invoice: InvoiceExtraction | null; fallback: Awaited<ReturnType<typeof api.analysis>>; error: string }) {
   const f = invoice?.fields;
   const money = (value: number | null | undefined) => value == null ? null : `${f?.currency || ""} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`.trim();
-  return <div className="extracted-fields"><h4>Structured Invoice Fields</h4>{!f && <div className="alert info">Loading structured invoice extraction...</div>}<div className="field-grid">
+  return <div className="extracted-fields"><h4>Structured Invoice Fields</h4>{!f && !error && <div className="alert info">Loading structured invoice extraction...</div>}{error && <div className="alert error">Structured invoice extraction failed: {error}</div>}<div className="field-grid">
     <Field label="Invoice Number" value={f?.invoice_number || fallback.invoice_number} /><Field label="Invoice Date" value={f?.invoice_date || fallback.invoice_date} /><Field label="Vendor" value={f?.vendor_name || fallback.vendor} /><Field label="Vendor GSTIN" value={f?.vendor_gstin} /><Field label="Buyer" value={f?.buyer_name} /><Field label="Buyer GSTIN" value={f?.buyer_gstin} /><Field label="PO Number" value={f?.po_number} /><Field label="Due Date" value={f?.due_date} /><Field label="Currency" value={f?.currency} /><Field label="Subtotal" value={money(f?.subtotal)} /><Field label="Total Tax" value={money(f?.tax_amount)} /><Field label="Total Amount" value={money(f?.total_amount) || fallback.total_amount} />
   </div>{f?.tax_breakdown?.length ? <><h4>Tax Breakdown</h4><div className="invoice-table-wrap"><table className="invoice-table"><thead><tr><th>Tax</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{f.tax_breakdown.map((tax, i) => <tr key={`${tax.tax_type}-${i}`}><td>{tax.tax_type}</td><td>{tax.rate == null ? "—" : `${tax.rate}%`}</td><td>{money(tax.amount) || "—"}</td></tr>)}</tbody></table></div></> : null}{f?.line_items?.length ? <><h4>Line Items</h4><div className="invoice-table-wrap"><table className="invoice-table"><thead><tr><th>#</th><th>Description</th><th>HSN</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead><tbody>{f.line_items.map((item, i) => <tr key={`${item.line_number}-${i}`}><td>{item.line_number ?? i + 1}</td><td>{item.description || "—"}</td><td>{item.hsn_code || "—"}</td><td>{item.quantity ?? "—"}</td><td>{money(item.unit_price) || "—"}</td><td>{money(item.amount) || "—"}</td></tr>)}</tbody></table></div></> : null}</div>;
 }
