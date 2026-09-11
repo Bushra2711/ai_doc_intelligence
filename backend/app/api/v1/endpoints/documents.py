@@ -17,12 +17,14 @@ from app.models.user import User
 from app.schemas.document import DocumentResponse
 from app.schemas.invoice_extraction import InvoiceExtractionResponse
 from app.schemas.invoice_accuracy import InvoiceAccuracyRequest, InvoiceAccuracyResponse
+from app.schemas.invoice_compliance import InvoiceComplianceResponse
 from app.services.document_ingestion import DocumentIngestionError, FileTooLargeError, InvalidFileError, UnsupportedFileTypeError, ingest_upload
 from app.services.document_processing import DocumentExtractionError, DocumentFileNotFoundError, UnsupportedDocumentTypeError, process_document as process_document_service
 from app.schemas.document_analysis import DocumentAnalysisResponse
 from app.services.document_analysis import DocumentAnalysisError, ExtractedTextNotFoundError, analyze_document
 from app.services.invoice_extraction import extract_invoice_fields_dict
 from app.services.invoice_accuracy import evaluate_invoice_accuracy
+from app.services.invoice_compliance import evaluate_invoice_compliance
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -90,6 +92,20 @@ def extract_invoice(document_id: str, current_user: User = Depends(get_current_u
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Extracted text not found. Process the document first.")
     fields = extract_invoice_fields_dict(extracted_text.extracted_text)
     return InvoiceExtractionResponse(document_id=document.id, fields=fields)
+
+
+@router.get("/{document_id}/compliance", response_model=InvoiceComplianceResponse)
+def invoice_compliance(document_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> InvoiceComplianceResponse:
+    """Validate extracted invoice fields using deterministic compliance rules."""
+    document = db.scalar(select(Document).where(Document.id == document_id, Document.user_id == current_user.id))
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    extracted_text = db.scalar(select(ExtractedDocumentText).where(ExtractedDocumentText.document_id == document.id))
+    if extracted_text is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Extracted text not found. Process the document first.")
+    fields = extract_invoice_fields_dict(extracted_text.extracted_text)
+    result = evaluate_invoice_compliance(fields)
+    return InvoiceComplianceResponse(document_id=document.id, **result)
 
 
 @router.post("/{document_id}/evaluate-accuracy", response_model=InvoiceAccuracyResponse)
