@@ -11,6 +11,8 @@ export type InvoiceFields = { invoice_number: string | null; invoice_date: strin
 export type InvoiceExtraction = { document_id: string; fields: InvoiceFields };
 export type ComplianceCheck = { rule: string; status: string; message: string };
 export type InvoiceCompliance = { document_id: string; overall_status: string; passed: number; warnings: number; failed: number; checks: ComplianceCheck[] };
+export type ConfidenceField = { field: string; value: unknown; score: number; level: string; reason: string };
+export type InvoiceConfidence = { document_id: string; overall_score: number; overall_level: string; fields: ConfidenceField[] };
 export type Analysis = {
   id: string; document_id: string; document_type: string; summary: string; key_points: string; important_information: string;
   invoice_number: string | null; vendor: string | null; invoice_date: string | null; total_amount: string | null; gst: string | null;
@@ -41,6 +43,7 @@ export const api = {
   analysis: (id: string, token: string) => request<Analysis>(`/documents/${id}/analysis`, {}, token),
   invoiceExtraction: (id: string, token: string) => request<InvoiceExtraction>(`/documents/${id}/extract-invoice`, {}, token),
   invoiceCompliance: (id: string, token: string) => request<InvoiceCompliance>(`/documents/${id}/compliance`, {}, token),
+  invoiceConfidence: (id: string, token: string) => request<InvoiceConfidence>(`/documents/${id}/confidence`, {}, token),
   remove: (id: string, token: string) => request<void>(`/documents/${id}`, { method: "DELETE" }, token),
 };
 export function friendlyError(error: unknown): string { return error instanceof ApiError ? error.message : "Something went wrong. Please try again."; }
