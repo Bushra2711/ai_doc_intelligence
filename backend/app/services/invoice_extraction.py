@@ -39,16 +39,19 @@ class InvoiceFields:
 GSTIN_PATTERN = re.compile(r"\b\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]\b", re.IGNORECASE)
 DATE_PATTERN = r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}"
 
+
 def _clean(value: str | None) -> str | None:
     if value is None: return None
     value = re.sub(r"\s+", " ", value).strip(" :|-\t")
     return value or None
+
 
 def _first_group(text: str, patterns: tuple[str, ...]) -> str | None:
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
         if match: return _clean(match.group(1))
     return None
+
 
 def _parse_amount(value: str | None) -> float | None:
     if not value: return None
@@ -59,13 +62,16 @@ def _parse_amount(value: str | None) -> float | None:
     try: return float(Decimal(normalized))
     except (InvalidOperation, ValueError): return None
 
+
 def _parse_number(value: str | None) -> float | None:
     if not value: return None
     try: return float(Decimal(re.sub(r"\s+", "", value).replace(",", "").strip()))
     except (InvalidOperation, ValueError): return None
 
+
 def _amount_pattern() -> str:
     return r"([0-9][0-9,]*(?:\s[0-9][0-9,]*)*(?:\.\s*[0-9]{1,2})?)"
+
 
 def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
     label_pattern = "|".join(rf"\b{re.escape(label)}\b" for label in labels)
@@ -73,12 +79,14 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
     match = re.search(pattern, text, flags=re.IGNORECASE)
     return _parse_amount(match.group(1)) if match else None
 
+
 def _extract_currency(text: str) -> str | None:
     if re.search(r"(?:₹|INR|Rs\.?|Rupees)", text, flags=re.IGNORECASE): return "INR"
     if re.search(r"(?:\$|USD|US Dollars?)", text, flags=re.IGNORECASE): return "USD"
     if re.search(r"(?:€|EUR|Euros?)", text, flags=re.IGNORECASE): return "EUR"
     if re.search(r"(?:£|GBP|Pounds?)", text, flags=re.IGNORECASE): return "GBP"
     return None
+
 
 def _extract_party_name(text: str, labels: tuple[str, ...]) -> str | None:
     lines = text.splitlines(); label_pattern = "|".join(re.escape(label) for label in labels)
@@ -95,11 +103,27 @@ def _extract_party_name(text: str, labels: tuple[str, ...]) -> str | None:
                 if value and not re.search(r"\bgstin\b", value, re.IGNORECASE): return value
     return None
 
+
+def _infer_vendor_name(text: str) -> str | None:
+    """Infer a seller name when the invoice has no explicit Vendor/Seller label."""
+    generic = re.compile(r"^(invoice|tax invoice|bill|receipt|gst invoice|from|to|bill to|ship to)$", re.IGNORECASE)
+    for line in text.splitlines():
+        value = _clean(line)
+        if not value or generic.fullmatch(value):
+            continue
+        if GSTIN_PATTERN.search(value) or re.search(r"\b(?:invoice\s*(?:no|number|date)|gstin|bill\s*to|ship\s*to|subtotal|total|order\s*(?:no|number))\b", value, re.IGNORECASE):
+            continue
+        # In common invoice layouts the seller/company name is the first meaningful line.
+        return value
+    return None
+
+
 def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
     taxes: list[TaxBreakdown] = []
     pattern = re.compile(rf"\b(CGST|SGST|IGST|UTGST|GST)\s*(?:\((\d+(?:\.\d+)?)%\))?\s*[:=-]?\s*(?:INR|Rs\.?|₹)?\s*{_amount_pattern()}", flags=re.IGNORECASE)
     for match in pattern.finditer(text): taxes.append(TaxBreakdown(tax_type=match.group(1).upper(), rate=_parse_number(match.group(2)), amount=_parse_amount(match.group(3))))
     return taxes
+
 
 def _extract_line_items(text: str) -> list[InvoiceLineItem]:
     items: list[InvoiceLineItem] = []; amount = r"[0-9][0-9,]*(?:\.\s*[0-9]{1,2})?"
@@ -111,6 +135,7 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
         items.append(InvoiceLineItem(line_number=int(match.group(1)), description=_clean(match.group(2)), hsn_code=match.group(3), quantity=_parse_number(match.group(4)), unit_price=_parse_amount(match.group(5)), amount=_parse_amount(match.group(6))))
     return items
 
+
 def extract_invoice_fields(text: str) -> InvoiceFields:
     normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
     invoice_number = _first_group(normalized_text, (r"(?:invoice\s*(?:no|number|#))\s*[:=-]?\s*([^\n|]+)", r"(?:inv\.?\s*(?:no|#))\s*[:=-]?\s*([^\n|]+)"))
@@ -118,7 +143,7 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     due_date = _first_group(normalized_text, (rf"(?:due\s*date|payment\s*due)\s*[:=-]?\s*({DATE_PATTERN})",))
     gstins = [match.upper() for match in GSTIN_PATTERN.findall(normalized_text)]
     vendor_gstin = gstins[0] if gstins else None; buyer_gstin = gstins[1] if len(gstins) > 1 else None
-    vendor_name = _extract_party_name(normalized_text, ("vendor", "supplier", "seller", "from", "vendor name", "supplier name"))
+    vendor_name = _extract_party_name(normalized_text, ("vendor", "supplier", "seller", "from", "vendor name", "supplier name")) or _infer_vendor_name(normalized_text)
     buyer_name = _extract_party_name(normalized_text, ("buyer", "customer", "bill to", "billed to", "buyer name", "customer name"))
     po_number = _first_group(normalized_text, (r"(?:purchase\s*order|order|po)\s*(?:no|number|#)?\s*[:=-]?\s*(PO[-\w]+)",))
     subtotal = _extract_labeled_amount(normalized_text, ("subtotal", "sub total", "taxable value", "net amount"))
@@ -128,6 +153,7 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     total_amount = _extract_labeled_amount(normalized_text, ("grand total", "invoice total", "total amount", "amount due"))
     if total_amount is None: total_amount = _extract_labeled_amount(normalized_text, ("total",))
     return InvoiceFields(invoice_number=invoice_number, invoice_date=invoice_date, due_date=due_date, vendor_name=vendor_name, vendor_gstin=vendor_gstin, buyer_name=buyer_name, buyer_gstin=buyer_gstin, subtotal=subtotal, tax_amount=tax_amount, total_amount=total_amount, currency=_extract_currency(normalized_text), po_number=po_number, tax_breakdown=taxes, line_items=_extract_line_items(normalized_text))
+
 
 def extract_invoice_fields_dict(text: str) -> dict[str, object]:
     return asdict(extract_invoice_fields(text))
