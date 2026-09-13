@@ -1,4 +1,5 @@
 const viewMap: Record<string, string> = { "⌂ Overview": "overview", "▣ Documents": "documents", "◈ AI Processing": "processing", "◌ Audit logs": "audit", Overview: "overview", Documents: "documents", "AI Processing": "processing", "Audit logs": "audit" };
+let identityRequested = false;
 function setView(label: string) { const view = viewMap[label]; if (view) document.documentElement.dataset.dashboardView = view; }
 function applyIdentity() {
   const heading = document.querySelector(".calm-app .topbar h1") as HTMLElement | null;
@@ -7,12 +8,9 @@ function applyIdentity() {
   const nameEl = document.querySelector(".calm-app .user-chip strong") as HTMLElement | null;
   const roleEl = document.querySelector(".calm-app .user-chip small") as HTMLElement | null;
   const initialEl = document.querySelector(".calm-app .user-chip > span") as HTMLElement | null;
-  if (token && nameEl && nameEl.textContent?.trim() === "Workspace user") {
-    fetch("http://127.0.0.1:8000/api/v1/users/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null).then(profile => {
-        if (!profile?.full_name) return;
-        nameEl.textContent = profile.full_name; if (roleEl) roleEl.textContent = "Workspace"; if (initialEl) initialEl.textContent = profile.full_name.charAt(0).toUpperCase();
-      }).catch(() => undefined);
+  if (token && nameEl && nameEl.textContent?.trim() === "Workspace user" && !identityRequested) {
+    identityRequested = true;
+    fetch("http://127.0.0.1:8000/api/v1/users/me", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null).then(profile => { if (!profile?.full_name) return; nameEl.textContent = profile.full_name; if (roleEl) roleEl.textContent = "Workspace"; if (initialEl) initialEl.textContent = profile.full_name.charAt(0).toUpperCase(); }).catch(() => undefined);
   }
 }
 export function installDashboardNavigation() {
