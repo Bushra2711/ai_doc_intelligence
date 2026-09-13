@@ -26,6 +26,7 @@ export default function DashboardAnalytics({ token }: Props) {
   const complianceTotal = metrics.compliance_passed + metrics.compliance_warnings + metrics.compliance_failed;
   const maxDaily = Math.max(...metrics.recent_daily_counts.map(item => item.count), 1);
   const typeEntries = Object.entries(metrics.document_types).sort((a, b) => b[1] - a[1]);
+  const maxTypeCount = Math.max(...typeEntries.map(([, count]) => count), 1);
 
   return <>
     <section className="analytics-section">
@@ -38,7 +39,7 @@ export default function DashboardAnalytics({ token }: Props) {
       </div>
       <div className="analytics-lower-grid">
         <div className="panel analytics-panel"><div className="panel-heading"><div><p className="eyebrow">PROCESSING TREND</p><h3>Documents · last 7 days</h3></div></div><div className="trend-chart">{metrics.recent_daily_counts.map(item => <div className="trend-column" key={item.date}><strong>{item.count}</strong><div className="trend-bar"><span style={{ height: `${Math.max((item.count / maxDaily) * 100, item.count ? 8 : 0)}%` }} /></div><small>{item.date.slice(5)}</small></div>)}</div></div>
-        <div className="panel analytics-panel"><div className="panel-heading"><div><p className="eyebrow">DOCUMENT MIX</p><h3>Types processed</h3></div></div>{typeEntries.length === 0 ? <div className="empty-state">No analyzed document types yet.</div> : <div className="analytics-list">{typeEntries.map(([type, count]) => <div className="analytics-list-row" key={type}><span>{type}</span><strong>{count}</strong></div>)}</div>}</div>
+        <div className="panel analytics-panel document-mix-panel"><div className="panel-heading"><div><p className="eyebrow">DOCUMENT MIX</p><h3>Types processed</h3></div></div>{typeEntries.length === 0 ? <div className="empty-state">No analyzed document types yet.</div> : <div className="analytics-list">{typeEntries.map(([type, count]) => <div className="analytics-list-row document-mix-row" key={type}><span>{type}</span><div className="mix-bar"><i style={{ width: `${Math.max((count / maxTypeCount) * 100, count ? 3 : 0)}%` }} /></div><strong>{count}</strong></div>)}</div>}</div>
       </div>
     </section>
     <AuditTrail token={token} />
