@@ -7,9 +7,6 @@ import "./styles/confidence.css";
 import "./styles/dashboard-analytics.css";
 import "./styles/audit-trail.css";
 import "./styles/calm-ui.css";
-import { installDashboardNavigation } from "./dashboard-navigation";
-
-installDashboardNavigation();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode><BrowserRouter><App /></BrowserRouter></React.StrictMode>
