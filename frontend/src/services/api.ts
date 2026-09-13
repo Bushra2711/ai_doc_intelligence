@@ -13,6 +13,12 @@ export type ComplianceCheck = { rule: string; status: string; message: string };
 export type InvoiceCompliance = { document_id: string; overall_status: string; passed: number; warnings: number; failed: number; checks: ComplianceCheck[] };
 export type ConfidenceField = { field: string; value: unknown; score: number; level: string; reason: string };
 export type InvoiceConfidence = { document_id: string; overall_score: number; overall_level: string; fields: ConfidenceField[] };
+export type DashboardMetrics = {
+  total_documents: number; completed_documents: number; processing_documents: number; pending_documents: number; failed_documents: number;
+  invoice_documents: number; analyzed_documents: number; average_invoice_confidence: number | null;
+  compliance_passed: number; compliance_warnings: number; compliance_failed: number;
+  document_types: Record<string, number>; status_counts: Record<string, number>; recent_daily_counts: Array<{ date: string; count: number }>;
+};
 export type Analysis = {
   id: string; document_id: string; document_type: string; summary: string; key_points: string; important_information: string;
   invoice_number: string | null; vendor: string | null; invoice_date: string | null; total_amount: string | null; gst: string | null;
@@ -34,8 +40,9 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 }
 export const api = {
   login: (email: string, password: string) => request<{ access_token: string }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  register: (full_name: string, email: string, password: string) => request("/auth/register", { method: "POST", body: JSON.stringify({ full_name, email, password }) }),
+  register: (full_name: string, email: string, password: string) => request("/auth/register", { method: "POST", body: JSON.stringify({ full_name, email, password })),
   documents: (token: string) => request<DocumentRecord[]>("/documents", {}, token),
+  dashboardMetrics: (token: string) => request<DashboardMetrics>("/dashboard/metrics", {}, token),
   upload: (file: File, token: string) => { const body = new FormData(); body.append("file", file); return request<DocumentRecord>("/documents/upload", { method: "POST", body }, token); },
   process: (id: string, token: string) => request(`/documents/${id}/process`, { method: "POST" }, token),
   analyze: (id: string, token: string) => request<Analysis>(`/documents/${id}/analyze`, { method: "POST" }, token),
