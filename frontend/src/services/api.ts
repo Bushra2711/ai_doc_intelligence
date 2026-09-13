@@ -40,7 +40,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 }
 export const api = {
   login: (email: string, password: string) => request<{ access_token: string }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  register: (full_name: string, email: string, password: string) => request("/auth/register", { method: "POST", body: JSON.stringify({ full_name, email, password })),
+  register: (full_name: string, email: string, password: string) => request("/auth/register", { method: "POST", body: JSON.stringify({ full_name, email, password }) }),
   documents: (token: string) => request<DocumentRecord[]>("/documents", {}, token),
   dashboardMetrics: (token: string) => request<DashboardMetrics>("/dashboard/metrics", {}, token),
   upload: (file: File, token: string) => { const body = new FormData(); body.append("file", file); return request<DocumentRecord>("/documents/upload", { method: "POST", body }, token); },
