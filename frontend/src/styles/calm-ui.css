@@ -1,39 +1,38 @@
-/* Calm DocuMind UI: soft sage + cream + muted blue, designed for comfortable long sessions. */
-:root { --calm-bg:#f4f7f2; --calm-surface:#fff; --calm-surface-2:#eef4ee; --calm-border:#d9e5dc; --calm-text:#20352f; --calm-muted:#6b7e77; --calm-green:#2f9e73; --calm-blue:#5c9ec7; --calm-shadow:0 8px 28px rgba(53,78,67,.08); }
-html,body,#root { min-height:100%; }
-body { background:var(--calm-bg) !important; }
+/* Calm visual system: soft sage + cream + muted blue for comfortable long sessions. */
+:root { --calm-bg:#f4f7f2; --calm-surface:#ffffff; --calm-surface-2:#eef4ee; --calm-border:#d9e5dc; --calm-text:#20352f; --calm-muted:#6b7e77; --calm-green:#2f9e73; --calm-blue:#5c9ec7; --calm-shadow:0 8px 28px rgba(53,78,67,.08); }
 .app-shell { background:var(--calm-bg) !important; color:var(--calm-text) !important; }
 .app-shell .sidebar { background:#edf4ef !important; border-right:1px solid var(--calm-border) !important; }
 .app-shell .logo-lockup { border-bottom-color:var(--calm-border) !important; }
 .app-shell .logo-lockup strong,.app-shell .logo-lockup span,.app-shell .sidebar nav a,.app-shell .sidebar-foot,.app-shell .sidebar-foot button { color:var(--calm-text) !important; }
 .app-shell .brand-mark { background:#dcefe3 !important; color:#245d47 !important; box-shadow:none !important; }
+.app-shell .sidebar nav a { border-radius:12px !important; }
+.app-shell .sidebar nav a:hover,.app-shell .sidebar nav a.active { background:#cfe6d5 !important; color:#245d47 !important; }
 .app-shell .topbar { background:rgba(255,255,255,.94) !important; border-bottom:1px solid var(--calm-border) !important; }
-.app-shell .topbar h1,.app-shell .hero-row h2,.app-shell h2,.app-shell h3,.app-shell h4,.app-shell .panel-heading strong { color:var(--calm-text) !important; }
 .app-shell .topbar h1 { font-size:0 !important; }
-.app-shell .topbar h1::after { content:'See you again with DocuMind AI'; font:600 20px 'Space Grotesk',sans-serif; color:var(--calm-text); letter-spacing:-.02em; }
+.app-shell .topbar h1::after { content:'' !important; }
+.app-shell .topbar .eyebrow { color:#607d73 !important; }
+.app-shell .topbar { min-height:72px; }
+.app-shell .user-chip > span { background:#dcefe3 !important; color:#245d47 !important; }
+.app-shell .user-chip strong { color:#20352f !important; }
+.app-shell .user-chip small { color:#6b7e77 !important; }
+.app-shell .user-chip button { color:#4e6b60 !important; }
+.app-shell .content { background:var(--calm-bg) !important; position:relative; overflow:hidden; }
+.app-shell .content::after { content:''; position:absolute; right:-90px; top:5px; width:230px; height:230px; border-radius:55% 45% 60% 40%; background:radial-gradient(ellipse at 50% 30%, rgba(179,214,193,.22), rgba(179,214,193,0) 70%); pointer-events:none; }
+.app-shell .hero-row { position:relative; z-index:1; min-height:104px; align-items:flex-start !important; }
+.app-shell .hero-row::after { content:'See you again with\A DocuMind AI'; white-space:pre; position:absolute; right:58px; top:-5px; width:240px; text-align:center; font:italic 28px Georgia,serif; line-height:1.05; color:#4e9074; transform:rotate(-3deg); pointer-events:none; }
+.app-shell .hero-row::before { content:''; position:absolute; right:-40px; top:-15px; width:110px; height:130px; border-radius:80% 15% 80% 20%; background:linear-gradient(135deg,rgba(179,214,193,.18),rgba(112,167,139,.28)); transform:rotate(24deg); pointer-events:none; }
+.app-shell .hero-row h2,.app-shell h2,.app-shell h3,.app-shell h4,.app-shell .panel-heading strong { color:#173447 !important; }
 .app-shell .eyebrow { color:#5d8f7b !important; }
 .app-shell .eyebrow.cyan { color:#4f8d73 !important; }
 .app-shell .muted,.app-shell small { color:var(--calm-muted) !important; }
-.app-shell .content { background:var(--calm-bg) !important; }
-.app-shell .panel,.app-shell .metric-card,.app-shell .analytics-kpi { background:var(--calm-surface) !important; border:1px solid var(--calm-border) !important; box-shadow:var(--calm-shadow); }
-.app-shell .metric-card.blue strong,.app-shell .analytics-kpi strong { color:#377fa8 !important; }
-.app-shell .metric-card.green strong { color:#2f9e73 !important; }
-.app-shell .metric-card.amber strong { color:#c79227 !important; }
-.app-shell .metric-card.red strong { color:#d45d69 !important; }
 .app-shell .hero-pulse { background:#e8f4ec !important; border:1px solid #cfe3d5 !important; color:#3d7660 !important; }
 .app-shell .pulse-dot,.app-shell .online-dot { background:#42b883 !important; box-shadow:0 0 8px #42b88366 !important; }
 .app-shell .primary-button,.app-shell .upload-button { background:#3ca478 !important; color:#fff !important; border-color:#3ca478 !important; }
 .app-shell .primary-button:hover,.app-shell .upload-button:hover { background:#318b65 !important; }
-.app-shell .calm-upload { margin:16px 0 22px; }
-.app-shell .calm-upload .upload-panel { min-height:175px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:25px 30px !important; background:#fbfdf9 !important; border:2px dashed #bfd5c5 !important; border-radius:18px !important; box-shadow:var(--calm-shadow); }
-.app-shell .calm-upload .upload-panel > div { margin:0 !important; }
-.app-shell .calm-upload .upload-panel h2 { font-size:21px !important; margin-top:10px !important; }
-.app-shell .calm-upload .upload-icon { width:48px; height:48px; margin:auto; display:grid; place-items:center; border-radius:14px; background:#e3f2e8 !important; color:#318b65 !important; font-size:27px; }
-.app-shell .calm-upload .file-picker { margin:14px 0 4px; max-width:330px; }
-.app-shell .calm-upload .upload-button { margin-top:8px; }
-.app-shell .calm-kpi-wrap { margin:0 0 12px; }
-.app-shell .calm-kpi-wrap > h3 { margin:4px 0; }
-.app-shell .calm-kpi-wrap > .muted { margin-bottom:12px; }
+.app-shell .upload-panel { background:#fbfdf9 !important; border:1px dashed #9fc5ac !important; box-shadow:var(--calm-shadow); border-radius:15px !important; }
+.app-shell .upload-icon { background:#e3f2e8 !important; color:#318b65 !important; }
+.app-shell .file-picker { background:#fff !important; border-color:#bfd5c5 !important; color:#597069 !important; }
+.app-shell .selected-file { color:#318b65 !important; }
 .app-shell .metric-grid { gap:14px; }
 .app-shell .metric-card { border-radius:15px !important; min-height:108px; }
 .app-shell .analytics-section { margin-top:18px; }
@@ -46,16 +45,25 @@ body { background:var(--calm-bg) !important; }
 .app-shell .row-actions button { border-color:#cadbd1 !important; color:#426358 !important; background:#fff !important; }
 .app-shell .row-actions button.accent { background:#e2f3e9 !important; color:#287653 !important; }
 .app-shell .row-actions button.danger { color:#bd5c67 !important; }
-.app-shell .side-nav-item { width:100%; display:flex; align-items:center; gap:12px; padding:12px 14px; border:0; background:transparent; color:var(--calm-text) !important; text-align:left; border-radius:12px; cursor:pointer; font:inherit; margin-bottom:5px; }
-.app-shell .side-nav-item b { margin-left:auto; color:#8aa097; font-size:20px; font-weight:400; }
-.app-shell .side-nav-item:hover,.app-shell .side-nav-item.active { background:#dceee2 !important; color:#245d47 !important; }
-.app-shell .user-chip > span { background:#dcefe3 !important; color:#245d47 !important; }
-.app-shell .user-chip strong { color:var(--calm-text) !important; }
-.app-shell .user-chip button { color:#4d6d61 !important; }
+html[data-dashboard-view="overview"] .app-shell > .workspace .content { display:flex; flex-direction:column; }
+html[data-dashboard-view="overview"] .app-shell .hero-row { order:1; }
+html[data-dashboard-view="overview"] .app-shell .metric-grid { order:3; }
+html[data-dashboard-view="overview"] .app-shell .analytics-section { order:4; }
+html[data-dashboard-view="overview"] .app-shell .main-grid { display:contents !important; }
+html[data-dashboard-view="overview"] .app-shell .main-grid > .upload-panel { order:2; width:100%; margin-top:4px; }
+html[data-dashboard-view="overview"] .app-shell .main-grid > .panel:not(.upload-panel) { display:none !important; }
+html[data-dashboard-view="overview"] .app-shell .pipeline { display:none !important; }
+html[data-dashboard-view="overview"] .app-shell .audit-panel { display:none !important; }
+html[data-dashboard-view="documents"] .app-shell .hero-row,html[data-dashboard-view="documents"] .app-shell .metric-grid,html[data-dashboard-view="documents"] .app-shell .analytics-section,html[data-dashboard-view="documents"] .app-shell .pipeline,html[data-dashboard-view="documents"] .app-shell .audit-panel { display:none !important; }
+html[data-dashboard-view="documents"] .app-shell .main-grid { display:grid !important; grid-template-columns:1fr !important; margin-top:0 !important; }
+html[data-dashboard-view="documents"] .app-shell .main-grid > .upload-panel { display:block !important; }
+html[data-dashboard-view="processing"] .app-shell .hero-row,html[data-dashboard-view="processing"] .app-shell .metric-grid,html[data-dashboard-view="processing"] .app-shell .analytics-section,html[data-dashboard-view="processing"] .app-shell .main-grid,html[data-dashboard-view="processing"] .app-shell .audit-panel { display:none !important; }
+html[data-dashboard-view="processing"] .app-shell .pipeline { display:block !important; }
+html[data-dashboard-view="audit"] .app-shell .hero-row,html[data-dashboard-view="audit"] .app-shell .metric-grid,html[data-dashboard-view="audit"] .app-shell .analytics-section,html[data-dashboard-view="audit"] .app-shell .main-grid,html[data-dashboard-view="audit"] .app-shell .pipeline { display:none !important; }
+html[data-dashboard-view="audit"] .app-shell .audit-panel { display:block !important; margin-top:0 !important; }
+.app-shell .side-nav-item { width:100%; display:flex; align-items:center; gap:12px; padding:12px 14px; border:0; background:transparent; color:var(--calm-text); text-align:left; border-radius:12px; cursor:pointer; font:inherit; margin-bottom:5px; }
+.app-shell .side-nav-item b { margin-left:auto; color:#8aa097; }
+.app-shell .side-nav-item:hover,.app-shell .side-nav-item.active { background:#dceee2; color:#245d47; }
 .app-shell .audit-panel { border-radius:16px !important; }
-.app-shell .view-heading { margin-bottom:18px; }
-.app-shell .view-heading h2 { margin:4px 0; }
-.app-shell .documents-view .panel { margin-top:4px; }
-.app-shell .processing-view .pipeline,.app-shell .audit-view .audit-panel { margin-top:0; }
-@media(max-width:900px){.app-shell .sidebar{width:210px}.app-shell .calm-upload .upload-panel{padding:20px !important}}
-@media(max-width:680px){.app-shell .sidebar{width:76px}.app-shell .sidebar .logo-lockup div:last-child,.app-shell .sidebar nav span,.app-shell .sidebar-foot{display:none}.app-shell .sidebar nav button{justify-content:center}.app-shell .topbar{padding:14px}.app-shell .user-chip button{display:none}}
+@media(max-width:900px){.app-shell .sidebar{width:210px}.app-shell .upload-panel{padding:20px !important}.app-shell .main-grid{grid-template-columns:1fr !important}.app-shell .hero-row::after{right:15px;opacity:.65}}
+@media(max-width:680px){.app-shell .sidebar{width:76px}.app-shell .sidebar .logo-lockup div:last-child,.app-shell .sidebar nav a span:last-child,.app-shell .sidebar-foot{display:none}.app-shell .sidebar nav a{justify-content:center}.app-shell .topbar{padding:14px}.app-shell .user-chip button{display:none}.app-shell .hero-row::after{display:none}}
