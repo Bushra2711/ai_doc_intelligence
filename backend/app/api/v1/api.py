@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.endpoints.audit_log import router as audit_log_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.dashboard import router as dashboard_router
 from app.api.v1.endpoints.documents import router as documents_router
@@ -8,23 +9,9 @@ from app.api.v1.endpoints.users import router as users_router
 
 api_router = APIRouter()
 
-# Health APIs
-api_router.include_router(
-    health_router,
-    prefix="/health",
-    tags=["health"],
-)
-
-# Authentication APIs
-api_router.include_router(
-    auth_router,
-)
-
-# User APIs
+api_router.include_router(health_router, prefix="/health", tags=["health"])
+api_router.include_router(auth_router)
 api_router.include_router(users_router)
-
-# Dashboard analytics APIs
 api_router.include_router(dashboard_router)
-
-# Document APIs
+api_router.include_router(audit_log_router)
 api_router.include_router(documents_router)
