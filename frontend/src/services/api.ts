@@ -19,6 +19,7 @@ export type DashboardMetrics = {
   compliance_passed: number; compliance_warnings: number; compliance_failed: number;
   document_types: Record<string, number>; status_counts: Record<string, number>; recent_daily_counts: Array<{ date: string; count: number }>;
 };
+export type AuditLog = { id: string; user_id: string; document_id: string | null; action: string; entity_type: string; status: string; details: string | null; created_at: string };
 export type Analysis = {
   id: string; document_id: string; document_type: string; summary: string; key_points: string; important_information: string;
   invoice_number: string | null; vendor: string | null; invoice_date: string | null; total_amount: string | null; gst: string | null;
@@ -43,6 +44,7 @@ export const api = {
   register: (full_name: string, email: string, password: string) => request("/auth/register", { method: "POST", body: JSON.stringify({ full_name, email, password }) }),
   documents: (token: string) => request<DocumentRecord[]>("/documents", {}, token),
   dashboardMetrics: (token: string) => request<DashboardMetrics>("/dashboard/metrics", {}, token),
+  auditLogs: (token: string, documentId?: string) => request<AuditLog[]>(`/audit-logs${documentId ? `?document_id=${encodeURIComponent(documentId)}` : ""}`, {}, token),
   upload: (file: File, token: string) => { const body = new FormData(); body.append("file", file); return request<DocumentRecord>("/documents/upload", { method: "POST", body }, token); },
   process: (id: string, token: string) => request(`/documents/${id}/process`, { method: "POST" }, token),
   analyze: (id: string, token: string) => request<Analysis>(`/documents/${id}/analyze`, { method: "POST" }, token),
