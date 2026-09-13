@@ -107,9 +107,10 @@ def _extract_party_name(text: str, labels: tuple[str, ...]) -> str | None:
 def _infer_vendor_name(text: str) -> str | None:
     """Infer a seller name when the invoice has no explicit Vendor/Seller label."""
     generic = re.compile(r"^(invoice|tax invoice|bill|receipt|gst invoice|from|to|bill to|ship to)$", re.IGNORECASE)
+    page_marker = re.compile(r"^\[\s*page\s+\d+\s*\]$", re.IGNORECASE)
     for line in text.splitlines():
         value = _clean(line)
-        if not value or generic.fullmatch(value):
+        if not value or generic.fullmatch(value) or page_marker.fullmatch(value):
             continue
         if GSTIN_PATTERN.search(value) or re.search(r"\b(?:invoice\s*(?:no|number|date)|gstin|bill\s*to|ship\s*to|subtotal|total|order\s*(?:no|number))\b", value, re.IGNORECASE):
             continue
