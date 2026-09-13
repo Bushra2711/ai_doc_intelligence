@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles/globals.css";
 import "./styles/confidence.css";
+import "./styles/dashboard-analytics.css";
 
 ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
