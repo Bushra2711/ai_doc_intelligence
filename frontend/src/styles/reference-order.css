@@ -1,0 +1,12 @@
+/* Keep the overview in the exact visual order of the reference design. */
+html[data-dashboard-view="overview"] .app-shell > .workspace .content{display:flex;flex-direction:column}
+html[data-dashboard-view="overview"] .app-shell .content>.hero-row{order:1}
+html[data-dashboard-view="overview"] .app-shell .content>.alert.wide{order:2}
+html[data-dashboard-view="overview"] .app-shell .content>.calm-upload{order:3;width:100%}
+html[data-dashboard-view="overview"] .app-shell .content>.calm-kpi-wrap{order:4}
+html[data-dashboard-view="overview"] .app-shell .content>.metric-grid{order:5}
+html[data-dashboard-view="overview"] .app-shell .content>.analytics-section{order:6}
+/* The top bar is only for account controls; the main heading belongs directly underneath it. */
+.app-shell .topbar{min-height:58px}
+.app-shell .topbar>div:first-child{visibility:hidden;width:1px;min-width:1px}
+@media(max-width:680px){html[data-dashboard-view="overview"] .app-shell .content>.hero-row{order:1}.app-shell .topbar>div:first-child{display:none}}
