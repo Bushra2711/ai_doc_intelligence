@@ -6,6 +6,7 @@ import App from "./App";
 import "./styles/globals.css";
 import "./styles/confidence.css";
 import "./styles/dashboard-analytics.css";
+import "./styles/audit-trail.css";
 
 ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
