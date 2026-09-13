@@ -6,12 +6,10 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
 
 from app.api.v1.dependencies import get_current_user
 from app.db.database import get_db
-from app.models.document import Document
-from app.models.document import DocumentStatus
+from app.models.document import Document, DocumentStatus
 from app.models.document_analysis import DocumentAnalysis
 from app.models.document_text import ExtractedDocumentText
 from app.models.user import User
