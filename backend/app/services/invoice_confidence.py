@@ -18,28 +18,37 @@ class InvoiceConfidence:
     overall_level: str
     fields: list[FieldConfidence]
 
+
 def _level(score: float) -> str:
     if score >= 0.90: return "HIGH"
     if score >= 0.70: return "MEDIUM"
     if score > 0: return "LOW"
     return "MISSING"
 
+
 def _field(field: str, value: Any, score: float, reason: str) -> FieldConfidence:
     score = round(max(0.0, min(1.0, score)), 2)
     return FieldConfidence(field=field, value=value, score=score, level=_level(score), reason=reason)
+
 
 def _number(value: Any) -> float | None:
     try: return float(value) if value is not None else None
     except (TypeError, ValueError): return None
 
+
 def calculate_invoice_confidence(fields: dict[str, Any]) -> InvoiceConfidence:
-    """Calculate transparent confidence from extraction evidence and consistency checks."""
+    """Calculate transparent confidence from extraction evidence and consistency checks.
+
+    Optional fields that are genuinely absent are shown as MISSING, but they are
+    excluded from the overall score so an invoice is not penalized for not having
+    fields such as due date or purchase order reference.
+    """
     results: list[FieldConfidence] = []
     rules = {
         "invoice_number": (0.98, "Matched an invoice-number label and value."),
         "invoice_date": (0.98, "Matched an invoice-date label and date pattern."),
         "due_date": (0.96, "Matched a due-date label and date pattern."),
-        "vendor_name": (0.88, "Matched a vendor/seller label or nearby party name."),
+        "vendor_name": (0.88, "Matched a vendor/seller label or inferred the seller from the invoice header."),
         "vendor_gstin": (0.99, "Matched a valid GSTIN structure."),
         "buyer_name": (0.88, "Matched a buyer/bill-to label or nearby party name."),
         "buyer_gstin": (0.99, "Matched a valid GSTIN structure."),
@@ -76,8 +85,11 @@ def calculate_invoice_confidence(fields: dict[str, Any]) -> InvoiceConfidence:
     else:
         results.append(_field("line_items", [], 0.0, "No line items were extracted."))
 
-    overall = round(sum(item.score for item in results) / len(results), 2) if results else 0.0
+    # Missing optional fields should not drag down the document quality score.
+    available = [item.score for item in results if item.score > 0]
+    overall = round(sum(available) / len(available), 2) if available else 0.0
     return InvoiceConfidence(overall_score=overall, overall_level=_level(overall), fields=results)
+
 
 def invoice_confidence_dict(fields: dict[str, Any]) -> dict[str, Any]:
     result = calculate_invoice_confidence(fields)
