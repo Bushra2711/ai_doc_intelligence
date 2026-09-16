@@ -1,0 +1,180 @@
+/* Final reference-matching overrides for the DocuMind overview. */
+
+html[data-dashboard-view="overview"] .topbar {
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 28px !important;
+}
+
+html[data-dashboard-view="overview"] .topbar > div:first-child {
+  display: none !important;
+}
+
+html[data-dashboard-view="overview"] .content {
+  padding: 20px 28px 38px !important;
+  max-width: 1500px !important;
+}
+
+html[data-dashboard-view="overview"] .hero-row {
+  position: relative !important;
+  min-height: 92px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  margin: 0 0 10px !important;
+  padding-right: 430px !important;
+}
+
+html[data-dashboard-view="overview"] .hero-row > div:first-child {
+  min-width: 0 !important;
+}
+
+html[data-dashboard-view="overview"] .hero-row h2 {
+  margin: 6px 0 5px !important;
+  font-size: 32px !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+}
+
+html[data-dashboard-view="overview"] .hero-row .muted {
+  margin: 0 !important;
+  font-size: 15px !important;
+}
+
+/* Reference has the status pill between the main heading and the handwritten greeting. */
+html[data-dashboard-view="overview"] .hero-row .hero-pulse {
+  position: absolute !important;
+  right: 265px !important;
+  top: 8px !important;
+  z-index: 3 !important;
+  white-space: nowrap !important;
+  padding: 10px 17px !important;
+  border-radius: 999px !important;
+}
+
+html[data-dashboard-view="overview"] .hero-row::after {
+  content: "See you again with\\A DocuMind AI" !important;
+  white-space: pre !important;
+  position: absolute !important;
+  right: 18px !important;
+  top: -3px !important;
+  width: 235px !important;
+  text-align: center !important;
+  color: #4e9277 !important;
+  font-family: "Segoe Script", "Brush Script MT", cursive !important;
+  font-size: 25px !important;
+  line-height: 1.05 !important;
+  font-style: italic !important;
+  transform: rotate(-2deg) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+/* Decorative soft botanical shape behind the greeting. */
+html[data-dashboard-view="overview"] .hero-row::before {
+  content: "" !important;
+  position: absolute !important;
+  right: -28px !important;
+  top: -25px !important;
+  width: 150px !important;
+  height: 125px !important;
+  border-radius: 65% 35% 60% 40% !important;
+  background: #dfeee5 !important;
+  opacity: .75 !important;
+  transform: rotate(-20deg) !important;
+  pointer-events: none !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload {
+  margin: 0 0 15px !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-panel {
+  min-height: 145px !important;
+  height: 145px !important;
+  padding: 15px 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-reference-icon {
+  width: 38px !important;
+  height: 38px !important;
+  margin: 0 auto 5px !important;
+  font-size: 20px !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-panel h2 {
+  font-size: 17px !important;
+  line-height: 1.2 !important;
+  margin: 0 0 3px !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-panel > p {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  margin: 0 0 6px !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-dropzone {
+  width: 100% !important;
+  max-width: 520px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 5px 12px !important;
+  margin: 0 auto 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-cloud {
+  display: none !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-button {
+  height: 32px !important;
+  margin: 0 auto 4px !important;
+  padding: 7px 18px !important;
+  font-size: 12px !important;
+}
+
+html[data-dashboard-view="overview"] .calm-upload .upload-help {
+  font-size: 9px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+html[data-dashboard-view="overview"] .calm-kpi-wrap {
+  margin: 0 0 8px !important;
+}
+
+html[data-dashboard-view="overview"] .calm-kpi-wrap h3 {
+  margin: 3px 0 2px !important;
+  font-size: 20px !important;
+}
+
+html[data-dashboard-view="overview"] .metric-grid {
+  margin-bottom: 10px !important;
+}
+
+@media (max-width: 900px) {
+  html[data-dashboard-view="overview"] .hero-row {
+    padding-right: 0 !important;
+    min-height: 125px !important;
+  }
+  html[data-dashboard-view="overview"] .hero-row::after { right: 0 !important; top: 66px !important; width: 220px !important; }
+  html[data-dashboard-view="overview"] .hero-row::before { right: -10px !important; top: 45px !important; }
+  html[data-dashboard-view="overview"] .hero-row .hero-pulse { right: 0 !important; top: 8px !important; }
+}
+
+@media (max-width: 560px) {
+  html[data-dashboard-view="overview"] .hero-row { min-height: 165px !important; }
+  html[data-dashboard-view="overview"] .hero-row h2 { font-size: 25px !important; }
+  html[data-dashboard-view="overview"] .hero-row::after { top: 82px !important; right: 0 !important; }
+  html[data-dashboard-view="overview"] .hero-row .hero-pulse { position: static !important; margin-top: 10px !important; display: inline-block !important; }
+}
