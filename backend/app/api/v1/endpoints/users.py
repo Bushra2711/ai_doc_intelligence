@@ -6,9 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.dependencies import get_current_user
 from app.api.v1.role_guard import require_roles
-from app.core.security import hash_password
 from app.db.database import get_db
-from app.models.audit_log import AuditLog
 from app.models.user import User, UserRole
 from app.schemas.user import UserResponse, UserRoleUpdate
 from app.services.audit_log import record_audit
