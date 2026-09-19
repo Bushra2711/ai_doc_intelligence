@@ -8,7 +8,7 @@ COPY pyproject.toml /app/pyproject.toml
 COPY app /app/app
 COPY alembic /app/alembic
 COPY alembic.ini /app/alembic.ini
-COPY README.md* /app/ 2>/dev/null || true
+RUN printf "# DocuMind AI backend\n" > /README.md
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
 
 RUN mkdir -p /app/uploads
