@@ -1,26 +1,57 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: documind-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: documind
       POSTGRES_USER: documind
       POSTGRES_PASSWORD: documind_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U documind -d documind"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   chroma:
     image: chromadb/chroma:latest
-    container_name: documind-chroma
     restart: unless-stopped
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
+    ports: ["8001:8000"]
+    volumes: [chroma_data:/chroma/chroma]
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.4.0
+    restart: unless-stopped
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlflow/artifacts
+    ports: ["5000:5000"]
+    volumes: [mlflow_data:/mlflow]
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://documind:documind_password@postgres:5432/documind
+      JWT_SECRET_KEY: local-docker-change-this-secret
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports: ["8000:8000"]
+    volumes: [uploads_data:/app/uploads]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    restart: unless-stopped
+    ports: ["5173:80"]
+    depends_on: [backend]
 
 volumes:
   postgres_data:
   chroma_data:
+  mlflow_data:
+  uploads_data:
