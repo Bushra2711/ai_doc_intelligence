@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from app.schemas.invoice_extraction import InvoiceExtractionResult
+from app.schemas.invoice_extraction import InvoiceFieldsResponse
 
 
 @dataclass(slots=True)
@@ -13,7 +13,7 @@ class DataQualityResult:
     checks: list[dict[str, Any]]
 
 
-def evaluate_invoice_data_quality(invoice: InvoiceExtractionResult) -> DataQualityResult:
+def evaluate_invoice_data_quality(invoice: InvoiceFieldsResponse) -> DataQualityResult:
     """Evaluate completeness, validity and reconciliation of extracted invoice data."""
     checks: list[dict[str, Any]] = []
 
