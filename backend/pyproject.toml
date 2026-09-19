@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "documind-ai-backend"
 version = "0.1.0"
 description = "DocuMind AI backend service"
-readme = "../README.md"
+readme = {text = "DocuMind AI backend service.", content-type = "text/plain"}
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
