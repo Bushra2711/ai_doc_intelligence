@@ -1,0 +1,2 @@
+date,document_id,document_type,vendor_name,total_amount,currency,confidence_score,data_quality_score,compliance_status,processing_status,processing_time_seconds
+2026-09-19,example-id,INVOICE,ABC TRADERS PVT. LTD.,96170.00,INR,0.96,0.95,COMPLIANT,PROCESSED,2.40
