@@ -144,13 +144,28 @@ For Report, Assignment, Identity Document, or Other, return an empty fields obje
 unless one of the supported field sets clearly applies.
 """
 
-    try:
-        response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
-            contents=prompt,
-        )
-    except Exception as exc:
-        raise DocumentAnalysisError(f"Gemini API request failed: {exc}") from exc
+    configured_model = os.getenv("GEMINI_MODEL", "").strip()
+    # Keep the model configurable, but provide a safe fallback for local setups
+    # whose .env still uses the older project default.
+    candidate_models = [configured_model, "gemini-2.0-flash", "gemini-2.5-flash"]
+    models = list(dict.fromkeys(model for model in candidate_models if model))
+    last_error: Exception | None = None
+    response = None
+    for model_name in models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            break
+        except Exception as exc:
+            last_error = exc
+
+    if response is None:
+        raise DocumentAnalysisError(
+            "Gemini analysis failed. Check GEMINI_API_KEY and GEMINI_MODEL in backend/.env. "
+            f"Models attempted: {', '.join(models)}. Last error: {last_error}"
+        ) from last_error
 
     result = (response.text or "").strip()
     if not result:
