@@ -52,23 +52,24 @@ html[data-dashboard-view="overview"] .hero-row .hero-pulse {
   border-radius: 999px !important;
 }
 
-html[data-dashboard-view="overview"] .hero-row::after {
-  content: "See you again with\\A DocuMind AI" !important;
-  white-space: pre !important;
-  position: absolute !important;
-  right: 18px !important;
-  top: -3px !important;
-  width: 235px !important;
-  text-align: center !important;
-  color: #4e9277 !important;
-  font-family: "Segoe Script", "Brush Script MT", cursive !important;
-  font-size: 25px !important;
-  line-height: 1.05 !important;
-  font-style: italic !important;
-  transform: rotate(-2deg) !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
+.app-shell .hero-row::after {
+  content: 'See you again with DocuMind AI';
+  position: absolute;
+  right: 30px;
+  top: 20px;
+  width: 360px;
+  text-align: center;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: #2f6f4e;
+  line-height: 1.4;
+  background: rgba(78, 144, 116, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
+
 
 /* Decorative soft botanical shape behind the greeting. */
 html[data-dashboard-view="overview"] .hero-row::before {
