@@ -17,10 +17,10 @@ router = APIRouter(prefix="/audit-logs", tags=["audit"])
 def list_audit_logs(
     document_id: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
-    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR, UserRole.EMPLOYEE)),
     db: Session = Depends(get_db),
 ) -> list[AuditLogResponse]:
-    """List audit events for administrators and auditors."""
+    """List audit events for the authenticated workspace user."""
     statement = select(AuditLog).where(AuditLog.user_id == current_user.id)
     if document_id:
         statement = statement.where(AuditLog.document_id == document_id)
