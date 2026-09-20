@@ -56,7 +56,7 @@ export default function Dashboard({ token, documents, loading, error, userName, 
 
       <div className="content">
         {view === "overview" && <>
-          <div className="hero-row"><div><p className="eyebrow cyan">INTELLIGENT DOCUMENT OPERATIONS</p><h2>Your document command center</h2><p className="muted">Ingest, understand, and act on your business content.</p></div><div className="hero-pulse"><span className="pulse-dot" /> AI services ready</div></div>
+          <div className="hero-row"><div><p className="eyebrow cyan">INTELLIGENT DOCUMENT OPERATIONS</p><h2>Your document command center</h2><p className="muted">Ingest, understand, and act on your business content.</p></div></div>
           {(error || actionError) && <div className="alert wide">{error || actionError}</div>}
           <div className="calm-upload"><UploadDocument token={token} onUploaded={() => onRefresh()} /></div>
           <section className="calm-kpi-wrap"><p className="eyebrow">KPI ANALYTICS</p><h3>Operational intelligence</h3><p className="muted">Live metrics from your document processing workspace.</p></section>
