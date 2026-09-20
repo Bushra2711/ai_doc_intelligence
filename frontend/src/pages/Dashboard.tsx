@@ -23,6 +23,32 @@ export default function Dashboard({ token, documents, loading, error, userName, 
     return () => { delete document.documentElement.dataset.dashboardView; };
   }, [view]);
 
+  useEffect(() => {
+    const handleProcess = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      const doc = documents.find((item) => item.id === id);
+      if (doc) void run("process", doc);
+    };
+    const handleAnalyze = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      const doc = documents.find((item) => item.id === id);
+      if (doc) void run("analyze", doc);
+    };
+    const handleView = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      const doc = documents.find((item) => item.id === id);
+      if (doc) setSelected(doc);
+    };
+    window.addEventListener("documind:process", handleProcess);
+    window.addEventListener("documind:analyze", handleAnalyze);
+    window.addEventListener("documind:view", handleView);
+    return () => {
+      window.removeEventListener("documind:process", handleProcess);
+      window.removeEventListener("documind:analyze", handleAnalyze);
+      window.removeEventListener("documind:view", handleView);
+    };
+  }, [documents]);
+
   async function run(action: "process" | "analyze" | "delete", doc: DocumentRecord) {
     if (action === "delete" && !window.confirm(`Delete ${doc.filename}?`)) return;
     setBusy(`${action}-${doc.id}`); setActionError("");
