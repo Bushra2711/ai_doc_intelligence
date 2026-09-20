@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
+from threading import Lock
 
 from dotenv import load_dotenv
 from google import genai
@@ -29,6 +31,11 @@ class DocumentAnalysisOutcome:
 
 
 FIELD_DEFAULT = "N/A"
+
+# Gemini rate limits are project/model based. Serialize local analysis calls and
+# keep a small gap between requests so bulk invoice evaluation does not flood the API.
+_GEMINI_REQUEST_LOCK = Lock()
+_LAST_GEMINI_REQUEST_AT = 0.0
 
 
 def _clean_field(value: object) -> str:
@@ -145,26 +152,60 @@ unless one of the supported field sets clearly applies.
 """
 
     configured_model = os.getenv("GEMINI_MODEL", "").strip()
-    # Keep the model configurable, but provide a safe fallback for local setups
-    # whose .env still uses the older project default.
-    candidate_models = [configured_model, "gemini-2.0-flash", "gemini-2.5-flash"]
+    # Current production-capable Flash models. Keep the configured value first so
+    # deployments can select a model, but do not rely on retired model names.
+    candidate_models = [
+        configured_model,
+        "gemini-3.6-flash",
+        "gemini-3.5-flash-lite",
+    ]
     models = list(dict.fromkeys(model for model in candidate_models if model))
     last_error: Exception | None = None
     response = None
-    for model_name in models:
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-            )
-            break
-        except Exception as exc:
-            last_error = exc
+
+    # A single local process can receive several Analyze clicks at once. Serialize
+    # them and enforce a configurable minimum gap between Gemini requests.
+    global _LAST_GEMINI_REQUEST_AT
+    min_interval = max(
+        0.0,
+        float(os.getenv("GEMINI_MIN_REQUEST_INTERVAL_SECONDS", "7")),
+    )
+
+    with _GEMINI_REQUEST_LOCK:
+        for model_name in models:
+            for attempt in range(3):
+                wait_for = min_interval - (time.monotonic() - _LAST_GEMINI_REQUEST_AT)
+                if wait_for > 0:
+                    time.sleep(wait_for)
+
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                    )
+                    _LAST_GEMINI_REQUEST_AT = time.monotonic()
+                    break
+                except Exception as exc:
+                    _LAST_GEMINI_REQUEST_AT = time.monotonic()
+                    last_error = exc
+
+                    # 429 means the request was rate-limited. Back off before
+                    # retrying the same valid model. Other errors should move to
+                    # the next configured/current model.
+                    status_code = getattr(exc, "status_code", None)
+                    if status_code == 429 or "429" in str(exc):
+                        time.sleep(2 ** attempt)
+                        continue
+                    break
+
+            if response is not None:
+                break
 
     if response is None:
         raise DocumentAnalysisError(
-            "Gemini analysis failed. Check GEMINI_API_KEY and GEMINI_MODEL in backend/.env. "
-            f"Models attempted: {', '.join(models)}. Last error: {last_error}"
+            "Gemini analysis failed. The API may be rate-limited or the configured "
+            f"model may be unavailable. Models attempted: {', '.join(models)}. "
+            f"Last error: {last_error}"
         ) from last_error
 
     result = (response.text or "").strip()
