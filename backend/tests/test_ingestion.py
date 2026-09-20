@@ -1,7 +1,7 @@
 from io import BytesIO
 
-import pytest
 from fastapi import UploadFile
+import pytest
 
 from app.services.document_ingestion import (
     MAX_UPLOAD_SIZE,
@@ -10,9 +10,16 @@ from app.services.document_ingestion import (
 )
 
 
+def make_upload(filename: str, content_type: str, content: bytes = b"test") -> UploadFile:
+    return UploadFile(
+        file=BytesIO(content),
+        filename=filename,
+        headers={"content-type": content_type},
+    )
+
+
 def test_supported_pdf_metadata_is_accepted():
-    upload = UploadFile(filename="invoice.pdf", file=BytesIO(b"%PDF"))
-    upload.content_type = "application/pdf"
+    upload = make_upload("invoice.pdf", "application/pdf", b"%PDF")
 
     name, extension, mime = validate_upload_metadata(upload)
 
@@ -22,8 +29,7 @@ def test_supported_pdf_metadata_is_accepted():
 
 
 def test_unsupported_extension_is_rejected():
-    upload = UploadFile(filename="invoice.exe", file=BytesIO(b"bad"))
-    upload.content_type = "application/octet-stream"
+    upload = make_upload("invoice.exe", "application/octet-stream")
 
     with pytest.raises(UnsupportedFileTypeError):
         validate_upload_metadata(upload)
