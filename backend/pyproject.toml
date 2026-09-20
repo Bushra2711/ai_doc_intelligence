@@ -48,6 +48,12 @@ include = ["app*"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+fix = true
+
+[tool.ruff.lint]
+# These rules are intentionally disabled for framework idioms and legacy datetime handling.
+ignore = ["B008", "BLE001", "DTZ005", "DTZ007", "DTZ011"]
+extend-safe-fixes = ["F401"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
