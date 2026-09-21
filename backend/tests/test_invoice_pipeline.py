@@ -108,3 +108,71 @@ def test_invoice_confidence_excludes_missing_optional_fields_from_overall_score(
     assert result.overall_level == "HIGH"
     due_date = next(item for item in result.fields if item.field == "due_date")
     assert due_date.level == "MISSING"
+
+
+STACKED_GST_INVOICE = """
+TAX INVOICE
+SYNTHETIC TEST DATA — NOT A REAL TAX INVOICE
+Company Name: Vidarbha Tech Solutions
+Invoice No.: TCS-TEST-0003
+Date: 03-08-2026
+GSTIN No.: 27ZZZZZ1003Z1Z7
+PO No.: PO-TEST-0003
+Bill To: Omkar Manufacturing
+GSTIN: 27YYYYY2003Y1Y7
+1
+Wireless Mouse
+8471
+6
+950.00
+200.00
+12%
+5500.00
+2
+Network Switch
+8517
+4
+6800.00
+200.00
+12%
+27000.00
+3
+UPS System
+8504
+4
+7600.00
+0.00
+12%
+30400.00
+4
+Barcode Scanner
+8471
+3
+8900.00
+100.00
+12%
+26600.00
+I 89,500.00
+Subtotal
+I 5,370.00
+CGST (6%)
+I 5,370.00
+SGST (6%)
+I 10,740.00
+Total Tax
+I 100,240.00
+TOTAL
+"""
+
+def test_invoice_extraction_handles_stacked_gst_invoice_layout():
+    fields = extract_invoice_fields(STACKED_GST_INVOICE)
+
+    assert fields.vendor_gstin == "27ZZZZZ1003Z1Z7"
+    assert fields.buyer_gstin == "27YYYYY2003Y1Y7"
+    assert fields.po_number == "PO-TEST-0003"
+    assert fields.subtotal == 89500
+    assert fields.tax_amount == 10740
+    assert fields.total_amount == 100240
+    assert len(fields.tax_breakdown or []) == 2
+    assert len(fields.line_items or []) == 4
+    assert sum(item.amount or 0 for item in fields.line_items or []) == 89500
