@@ -36,7 +36,10 @@ class InvoiceFields:
     tax_breakdown: list[TaxBreakdown] | None = None
     line_items: list[InvoiceLineItem] | None = None
 
-GSTIN_PATTERN = re.compile(r"\b\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]\b", re.IGNORECASE)
+# Extraction intentionally accepts any 15-character GSTIN-like token so OCR can
+# capture synthetic/test identifiers too. Compliance performs the strict format
+# validation separately.
+GSTIN_PATTERN = re.compile(r"\b\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]{3}\b", re.IGNORECASE)
 DATE_PATTERN = r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}"
 
 
@@ -255,7 +258,10 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
 
 def extract_invoice_fields(text: str) -> InvoiceFields:
     normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
-    invoice_number = _first_group(normalized_text, (r"(?:invoice\s*(?:no|number|#))\s*[:=-]?\s*([^\n|]+)", r"(?:inv\.?\s*(?:no|#))\s*[:=-]?\s*([^\n|]+)"))
+    invoice_number = _first_group(normalized_text, (
+        r"(?:invoice\s*(?:no|number|#))\.?\s*[:=-]?\s*([^\n|]+)",
+        r"(?:inv\.?\s*(?:no|#))\.?\s*[:=-]?\s*([^\n|]+)",
+    ))
     invoice_date = _first_group(normalized_text, (rf"(?:invoice\s*date|date\s*of\s*invoice|date)\s*[:=-]?\s*({DATE_PATTERN})",))
     due_date = _first_group(normalized_text, (rf"(?:due\s*date|payment\s*due)\s*[:=-]?\s*({DATE_PATTERN})",))
     gstins = [match.upper() for match in GSTIN_PATTERN.findall(normalized_text)]
@@ -275,7 +281,9 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
             buyer_gstin = buyer_match.group(1).upper()
     vendor_name = _extract_party_name(normalized_text, ("vendor", "supplier", "seller", "from", "vendor name", "supplier name", "company name", "company")) or _infer_vendor_name(normalized_text)
     buyer_name = _extract_party_name(normalized_text, ("buyer", "customer", "bill to", "billed to", "buyer name", "customer name"))
-    po_number = _first_group(normalized_text, (r"(?:purchase\s*order|order|po)\s*(?:no|number|#)?\s*[:=-]?\s*(PO[-\w]+)",))
+    po_number = _first_group(normalized_text, (
+        r"(?:purchase\s*order|order|po)\s*(?:no|number|#)\.?\s*[:=-]?\s*(PO[-\w]+)",
+    ))
     subtotal = _extract_labeled_amount(normalized_text, ("subtotal", "sub total", "taxable value", "net amount"))
     taxes = _extract_tax_breakdown(normalized_text)
     explicit_tax = _extract_labeled_amount(normalized_text, ("tax amount", "total tax", "gst amount"))
