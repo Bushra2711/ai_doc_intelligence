@@ -116,21 +116,57 @@ def main() -> int:
     )["access_token"]
 
     documents = http_json(base_url, "/api/v1/documents", token=token)
-    known_ids = {doc["id"] for doc in documents}
-    unknown = [row["document_id"].strip() for row in rows if row["document_id"].strip() not in known_ids]
-    if unknown:
-        print("These document_id values are not available to the authenticated user:")
-        for item in unknown:
+
+    # Local review files use stored upload names such as
+    # "<uuid>_TCS-TEST-0012", while the API document id is a different UUID.
+    # Match those review rows to the authenticated user's document by the
+    # original filename (TCS-TEST-0012.pdf) or by the invoice number.
+    import re
+    api_by_filename = {str(doc.get("filename", "")).lower(): doc for doc in documents}
+    api_by_invoice = {}
+    for doc in documents:
+        match = re.search(r"TCS-TEST-\\d{4}", str(doc.get("filename", "")), re.IGNORECASE)
+        if match:
+            api_by_invoice[match.group(0).upper()] = doc
+
+    resolved = []
+    unresolved = []
+    for row in rows:
+        local_id = row["document_id"].strip()
+        if local_id in {str(doc.get("id")) for doc in documents}:
+            doc = next(doc for doc in documents if str(doc.get("id")) == local_id)
+        else:
+            invoice_match = re.search(r"TCS-TEST-\\d{4}", local_id, re.IGNORECASE)
+            invoice_number = invoice_match.group(0).upper() if invoice_match else ""
+            doc = api_by_invoice.get(invoice_number)
+            if doc is None:
+                doc = api_by_filename.get(f"{local_id.lower()}.pdf")
+        if doc is None:
+            unresolved.append(local_id)
+        else:
+            resolved.append((row, doc))
+
+    if unresolved:
+        print("These review rows could not be mapped to authenticated documents:")
+        for item in unresolved:
             print(f"  - {item}")
+        print("The evaluator matches TCS-TEST-#### from the local filename to the API document filename.")
         return 2
 
     results = []
     field_stats = defaultdict(lambda: {"correct": 0, "total": 0})
-    for number, row in enumerate(rows, start=1):
-        expected = {field: parse_value(field, row.get(field, "")) for field in FIELDS}
+    for number, (row, doc) in enumerate(resolved, start=1):
+        # Prefer explicitly human-verified values when present.
+        expected = {}
+        for field in FIELDS:
+            source = row.get(f"verified_{field}", "").strip()
+            if source == "":
+                source = row.get(field, "")
+            expected[field] = parse_value(field, source)
+        document_id = str(doc["id"])
         result = http_json(
             base_url,
-            f"/api/v1/documents/{row['document_id'].strip()}/evaluate-accuracy",
+            f"/api/v1/documents/{document_id}/evaluate-accuracy",
             method="POST",
             token=token,
             payload={"expected": expected},
@@ -140,7 +176,7 @@ def main() -> int:
             field_stats[field]["total"] += 1
             if detail["match"]:
                 field_stats[field]["correct"] += 1
-        print(f"[{number:02d}/50] {row['document_id']} -> {result['accuracy_percent']:.2f}%")
+        print(f"[{number:02d}/50] {row["document_id"]} -> API {document_id} -> {result["accuracy_percent"]:.2f}%")
 
     total_correct = sum(item["correct_fields"] for item in results)
     total_fields = sum(item["total_fields"] for item in results)
