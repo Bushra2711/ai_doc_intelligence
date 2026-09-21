@@ -127,26 +127,59 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
 
 
 def _extract_line_items(text: str) -> list[InvoiceLineItem]:
-    """Extract common invoice table rows, including discount and tax columns."""
+    """Extract invoice rows from normal tables and OCR-stacked table layouts."""
     items: list[InvoiceLineItem] = []
     amount = r"[0-9][0-9,]*(?:\.\s*[0-9]{1,2})?"
-    row_pattern = re.compile(\n        r"^(\\d+)\\s+(.+?)\\s+(\\d{4,8})\\s+(\\d+(?:\\.\\d+)?)\\s+"\n        r"(AMT)(?:\\s+(AMT))?\\s+(\\d+(?:\\.\\d+)?)%\\s+(AMT)\\s*$".replace("AMT", amount),\n        re.IGNORECASE,\n    )\n    for line in text.splitlines():
-        line = line.strip().rstrip("|").strip()
-        if not line or re.match(r"^(s\.?\s*no|sl\.?|item\s+name)", line, re.IGNORECASE):
-            continue
-        match = row_pattern.match(line)
-        if not match:
-            continue
-        items.append(InvoiceLineItem(
-            line_number=int(match.group(1)),
-            description=_clean(match.group(2)),
-            hsn_code=match.group(3),
-            quantity=_parse_number(match.group(4)),
-            unit_price=_parse_amount(match.group(5)),
-            amount=_parse_amount(match.group(7)),
-        ))
-    return items
+    row_pattern = re.compile(
+        r"^(\\d+)\\s+(.+?)\\s+(\\d{4,8})\\s+(\\d+(?:\\.\\d+)?)\\s+"
+        r"(AMT)(?:\\s+(AMT))?\\s+(\\d+(?:\\.\\d+)?)%\\s+(AMT)\\s*$".replace("AMT", amount),
+        re.IGNORECASE,
+    )
+    lines = [line.strip().rstrip("|").strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
 
+    # Format 1: all columns on one line.
+    for line in lines:
+        match = row_pattern.match(line)
+        if match:
+            items.append(InvoiceLineItem(
+                line_number=int(match.group(1)), description=_clean(match.group(2)),
+                hsn_code=match.group(3), quantity=_parse_number(match.group(4)),
+                unit_price=_parse_amount(match.group(5)), amount=_parse_amount(match.group(7)),
+            ))
+
+    if items:
+        return items
+
+    # Format 2: OCR stacks each table cell on its own line:
+    # 1 / USB Hub / 8471 / 7 / 1250.00 / 100.00 / 18% / 8650.00
+    index = 0
+    while index < len(lines):
+        if not re.fullmatch(r"\\d+", lines[index]):
+            index += 1
+            continue
+        number = int(lines[index])
+        if index + 7 >= len(lines):
+            index += 1
+            continue
+        description, hsn, qty, unit_price = lines[index + 1:index + 5]
+        discount_or_tax = lines[index + 5]
+        tax_or_amount = lines[index + 6]
+        amount_value = lines[index + 7]
+        if (re.fullmatch(r"\\d{4,8}", hsn) and _parse_number(qty) is not None
+                and _parse_amount(unit_price) is not None
+                and re.fullmatch(rf"{amount}", discount_or_tax)
+                and re.fullmatch(r"\\d+(?:\\.\\d+)?%", tax_or_amount)
+                and _parse_amount(amount_value) is not None):
+            items.append(InvoiceLineItem(
+                line_number=number, description=_clean(description), hsn_code=hsn,
+                quantity=_parse_number(qty), unit_price=_parse_amount(unit_price),
+                amount=_parse_amount(amount_value),
+            ))
+            index += 8
+            continue
+        index += 1
+    return items
 def extract_invoice_fields(text: str) -> InvoiceFields:
     normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
     invoice_number = _first_group(normalized_text, (r"(?:invoice\s*(?:no|number|#))\s*[:=-]?\s*([^\n|]+)", r"(?:inv\.?\s*(?:no|#))\s*[:=-]?\s*([^\n|]+)"))
