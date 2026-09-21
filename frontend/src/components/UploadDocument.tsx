@@ -1,4 +1,4 @@
-import { DragEvent, useRef, useState } from "react";
+import { DragEvent, useEffect, useRef, useState } from "react";
 import { api, DocumentRecord, friendlyError } from "../services/api";
 
 type UploadDocumentProps = { token: string; onUploaded: (document: DocumentRecord) => void };
@@ -9,6 +9,7 @@ function UploadDocument({ token, onUploaded }: UploadDocumentProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [stage, setStage] = useState<"upload" | "process" | "analyze" | "view">("upload");
   const inputRef = useRef<HTMLInputElement>(null);
 
   function choose(next: File | undefined) {
@@ -17,6 +18,15 @@ function UploadDocument({ token, onUploaded }: UploadDocumentProps) {
     if (next.size > 10 * 1024 * 1024) { setFile(null); setError("This file is larger than the 10 MB limit."); return; }
     setFile(next);
   }
+
+  useEffect(() => {
+    const handleWorkflow = (event: Event) => {
+      const next = (event as CustomEvent<{ id: string; stage: "process" | "analyze" | "view" }>).detail;
+      if (uploadedDocument?.id === next?.id) setStage(next.stage);
+    };
+    window.addEventListener("documind:workflow", handleWorkflow);
+    return () => window.removeEventListener("documind:workflow", handleWorkflow);
+  }, [uploadedDocument]);
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -46,13 +56,12 @@ function UploadDocument({ token, onUploaded }: UploadDocumentProps) {
         <input ref={inputRef} type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.gif,.webp" onChange={(e) => choose(e.target.files?.[0])} />
       </div>
       <div className="upload-actions">
-        <button type="button" onClick={() => inputRef.current?.click()} className="secondary-upload-button">Choose File</button>
-        <button type="button" onClick={uploadDocument} disabled={!file || loading} className="primary-button upload-button">{loading ? "Uploading securely..." : "Upload Document"}</button>
+        <button type="button" onClick={uploadDocument} disabled={!file || loading || !!uploadedDocument} className="primary-button upload-button">{loading ? "Uploading..." : uploadedDocument ? "Uploaded" : "Upload Document"}</button>
       </div>
-      <div className="document-action-steps" aria-label="Document workflow steps">
-        <button type="button" disabled={!uploadedDocument} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:process", { detail: uploadedDocument.id })); }}>Process</button>
-        <button type="button" disabled={!uploadedDocument} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:analyze", { detail: uploadedDocument.id })); }}>Analyze</button>
-        <button type="button" disabled={!uploadedDocument} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:view", { detail: uploadedDocument.id })); }}>View</button>
+      <div className="document-action-steps workflow-steps" aria-label="Document workflow steps">
+        <button type="button" className={stage === "process" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "process"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:process", { detail: uploadedDocument.id })); }}>2. Process</button>
+        <button type="button" className={stage === "analyze" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "analyze"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:analyze", { detail: uploadedDocument.id })); }}>3. Analyze</button>
+        <button type="button" className={stage === "view" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "view"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:view", { detail: uploadedDocument.id })); }}>4. View</button>
       </div>
       <small className="upload-help">Supported formats: PDF, DOCX, JPG, PNG, GIF, WEBP&nbsp; | &nbsp;Max size: 10 MB</small>
       {message && <p className="upload-success">{message}</p>}
