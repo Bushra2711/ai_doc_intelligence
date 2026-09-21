@@ -189,13 +189,14 @@ unless one of the supported field sets clearly applies.
                     _LAST_GEMINI_REQUEST_AT = time.monotonic()
                     last_error = exc
 
-                    # 429 means the request was rate-limited. Back off before
-                    # retrying the same valid model. Other errors should move to
-                    # the next configured/current model.
+                    # 429 means the current model is rate-limited. Do not spend
+                    # another 2/4/8 seconds retrying a model that is already known
+                    # to be throttled; immediately fall through to the next model.
+                    # This keeps interactive analysis responsive and makes the
+                    # Flash-Lite fallback effective during bulk invoice evaluation.
                     status_code = getattr(exc, "status_code", None)
                     if status_code == 429 or "429" in str(exc):
-                        time.sleep(2 ** attempt)
-                        continue
+                        break
                     break
 
             if response is not None:
