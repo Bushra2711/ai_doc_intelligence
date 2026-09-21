@@ -380,10 +380,36 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     ))
     subtotal = _extract_labeled_amount(normalized_text, ("subtotal", "sub total", "taxable value", "net amount"))
     taxes = _extract_tax_breakdown(normalized_text)
+
+    # Prefer the sum of extracted GST rows when an explicit tax label is
+    # ambiguous in OCR-stacked layouts. This avoids accepting one component
+    # (for example CGST) as the document-level total tax.
+    tax_breakdown_total = sum(t.amount for t in taxes if t.amount is not None) or None
     explicit_tax = _extract_labeled_amount(normalized_text, ("tax amount", "total tax", "gst amount"))
-    tax_amount = explicit_tax if explicit_tax is not None else (sum(t.amount for t in taxes if t.amount is not None) or None)
-    total_amount = _extract_labeled_amount(normalized_text, ("grand total", "invoice total", "total amount", "amount due", "total payable", "net payable"))
-    if total_amount is None: total_amount = _extract_labeled_amount(normalized_text, ("total",))
+    if explicit_tax is not None and tax_breakdown_total is not None:
+        tax_amount = tax_breakdown_total if abs(explicit_tax - tax_breakdown_total) > 0.01 else explicit_tax
+    else:
+        tax_amount = explicit_tax if explicit_tax is not None else tax_breakdown_total
+
+    total_amount = _extract_labeled_amount(
+        normalized_text,
+        ("grand total", "invoice total", "total amount", "amount due", "total payable", "net payable"),
+    )
+    if total_amount is None:
+        total_amount = _extract_labeled_amount(normalized_text, ("total",))
+
+    # OCR can associate a preceding GST component with a broad TOTAL label.
+    # If subtotal + tax gives an exact reconciliation, prefer that value.
+    reconciled_total = (
+        subtotal + tax_amount
+        if subtotal is not None and tax_amount is not None
+        else None
+    )
+    if reconciled_total is not None and total_amount is not None:
+        if abs(total_amount - reconciled_total) > 0.01:
+            total_amount = reconciled_total
+    elif reconciled_total is not None and total_amount is None:
+        total_amount = reconciled_total
     return InvoiceFields(invoice_number=invoice_number, invoice_date=invoice_date, due_date=due_date, vendor_name=vendor_name, vendor_gstin=vendor_gstin, buyer_name=buyer_name, buyer_gstin=buyer_gstin, subtotal=subtotal, tax_amount=tax_amount, total_amount=total_amount, currency=_extract_currency(normalized_text), po_number=po_number, tax_breakdown=taxes, line_items=_extract_line_items(normalized_text))
 
 
