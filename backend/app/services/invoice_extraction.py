@@ -173,10 +173,59 @@ def _infer_vendor_name(text: str) -> str | None:
 
 
 def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
+    """Extract tax rows from inline and OCR-stacked invoice layouts."""
     taxes: list[TaxBreakdown] = []
-    pattern = re.compile(rf"\b(CGST|SGST|IGST|UTGST|GST)\s*(?:\((\d+(?:\.\d+)?)%\))?\s*[:=-]?\s*(?:INR|Rs\.?|₹)?\s*{_amount_pattern()}", flags=re.IGNORECASE)
-    for match in pattern.finditer(text): taxes.append(TaxBreakdown(tax_type=match.group(1).upper(), rate=_parse_number(match.group(2)), amount=_parse_amount(match.group(3))))
-    return taxes
+    label = r"(CGST|SGST|IGST|UTGST|GST)"
+    rate = r"(?:\((\d+(?:\.\d+)?)%\))?"
+    amount = r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)"
+
+    # Normal layout: CGST (9%): INR 7,335.00
+    inline = re.compile(
+        rf"\b{label}\s*{rate}\s*[:=-]?\s*(?:INR|Rs\.?|₹|I|l)?\s*{amount}",
+        flags=re.IGNORECASE,
+    )
+    for match in inline.finditer(text):
+        taxes.append(
+            TaxBreakdown(
+                tax_type=match.group(1).upper(),
+                rate=_parse_number(match.group(2)),
+                amount=_parse_amount(match.group(3)),
+            )
+        )
+
+    # OCR-stacked layout:
+    # I 5,370.00
+    # CGST (6%)
+    # I 5,370.00
+    lines = [line.strip() for line in text.splitlines()]
+    stacked = re.compile(rf"^\s*{label}\s*{rate}\s*$", flags=re.IGNORECASE)
+    for index, line in enumerate(lines[:-1]):
+        match = stacked.match(line)
+        if not match:
+            continue
+        amount_match = re.fullmatch(
+            rf"(?:INR|Rs\.?|₹|I|l)?\s*{amount}",
+            lines[index + 1],
+            flags=re.IGNORECASE,
+        )
+        if amount_match:
+            taxes.append(
+                TaxBreakdown(
+                    tax_type=match.group(1).upper(),
+                    rate=_parse_number(match.group(2)),
+                    amount=_parse_amount(amount_match.group(1)),
+                )
+            )
+
+    # Deduplicate if a layout happened to match both paths.
+    unique: list[TaxBreakdown] = []
+    seen: set[tuple[str, float | None, float | None]] = set()
+    for tax in taxes:
+        key = (tax.tax_type, tax.rate, tax.amount)
+        if key not in seen:
+            seen.add(key)
+            unique.append(tax)
+    return unique
 
 
 def _extract_line_items(text: str) -> list[InvoiceLineItem]:
