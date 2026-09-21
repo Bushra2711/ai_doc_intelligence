@@ -77,44 +77,53 @@ def _amount_pattern() -> str:
 
 
 def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
-    """Extract labeled amounts from inline and OCR-stacked layouts."""
+    """Extract a labeled amount without crossing invoice line boundaries."""
     label_pattern = "|".join(rf"\b{re.escape(label)}\b" for label in labels)
-    amount = _amount_pattern()
 
-    # OCR/PDF layout: I 89,500.00\nSubtotal
-    # Check the stacked form first. Otherwise an inline search for
-    # "Subtotal" can incorrectly consume the next labeled amount
-    # (for example, the CGST amount immediately after the subtotal label).
-    stacked = re.search(
-        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}\s*\n\s*"
-        rf"(?:{label_pattern})\b",
-        text,
-        flags=re.IGNORECASE,
-    )
-    if stacked:
-        return _parse_amount(stacked.group(1))
+    # Prefer the exact same-line form. The old generic amount regex could
+    # absorb table values immediately before a following label.
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        match = re.search(
+            rf"(?:{label_pattern})[ \t]*(?:\([^)]*\))?[ \t]*(?:[:=\-])?[ \t]*"
+            rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?[ \t]*"
+            rf"([0-9][0-9,]*(?:\.[ \t]*[0-9]{{1,2}})?)",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            return _parse_amount(match.group(1))
 
-    # Normal layout: Subtotal: INR 89,500.00
-    # Keep the inline match on the same line so a following tax/total
-    # amount cannot be mistaken for this field.
-    inline = re.search(
-        rf"(?:{label_pattern})[ \t]*(?:\([^)]*\))?[ \t]*(?:[:=\-])?[ \t]*"
-        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?[ \t]*{amount}",
-        text,
-        flags=re.IGNORECASE,
-    )
-    if inline:
-        return _parse_amount(inline.group(1))
+    # OCR-stacked form: amount on one line, label on the next.
+    lines = [line.strip() for line in text.splitlines()]
+    for index, line in enumerate(lines[:-1]):
+        if not line:
+            continue
+        next_line = lines[index + 1]
+        if re.fullmatch(rf"(?:{label_pattern})", next_line, flags=re.IGNORECASE):
+            match = re.search(
+                r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
+                r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
+                line,
+                flags=re.IGNORECASE,
+            )
+            if match:
+                return _parse_amount(match.group(1))
 
-    # Some OCR puts the label and amount on separate lines in the opposite
-    # order with a separator line between them.
-    reverse_stacked = re.search(
-        rf"(?:{label_pattern})\s*\n\s*(?:[:=\-]\s*)?"
-        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}",
-        text,
-        flags=re.IGNORECASE,
-    )
-    return _parse_amount(reverse_stacked.group(1)) if reverse_stacked else None
+    # Reverse-stacked form: label on one line, amount on the next.
+    for index, line in enumerate(lines[:-1]):
+        if re.fullmatch(rf"(?:{label_pattern})[:=\-]?", line, flags=re.IGNORECASE):
+            match = re.search(
+                r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
+                r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
+                lines[index + 1],
+                flags=re.IGNORECASE,
+            )
+            if match:
+                return _parse_amount(match.group(1))
+    return None
 
 
 def _extract_currency(text: str) -> str | None:
