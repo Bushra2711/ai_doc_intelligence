@@ -57,6 +57,9 @@ export default function Dashboard({ token, documents, loading, error, userName, 
       if (action === "analyze") await api.analyze(doc.id, token);
       if (action === "delete") await api.remove(doc.id, token);
       await onRefresh();
+      if (action === "process" || action === "analyze") {
+        window.dispatchEvent(new CustomEvent("documind:workflow", { detail: { id: doc.id, stage: action === "process" ? "analyze" : "view" } }));
+      }
       if (selected?.id === doc.id && action === "delete") setSelected(null);
     } catch (err) { setActionError(friendlyError(err)); }
     finally { setBusy(""); }
@@ -90,7 +93,22 @@ export default function Dashboard({ token, documents, loading, error, userName, 
           <DashboardAnalytics token={token} />
         </>}
 
-        {view === "documents" && <section className="documents-view"><div className="view-heading"><p className="eyebrow">DOCUMENT WORKSPACE</p><h2>Documents</h2><p className="muted">Upload, process, analyze, and manage your documents.</p></div><div className="calm-upload"><UploadDocument token={token} onUploaded={() => onRefresh()} /></div>{(error || actionError) && <div className="alert wide">{error || actionError}</div>}<section className="panel"><div className="panel-heading"><div><p className="eyebrow">LIVE WORKSPACE</p><h3>Recent documents</h3></div><span className="count-pill">{documents.length} total</span></div>{loading ? <div className="empty-state"><span className="spinner" />Loading workspace data...</div> : documents.length === 0 ? <div className="empty-state"><strong>No documents yet</strong><span>Upload a document to start your intelligence workflow.</span></div> : <div className="document-list">{documents.map(doc => <DocumentRow key={doc.id} doc={doc} busy={busy} onAction={run} onView={setSelected} />)}</div>}</section></section>}
+        {view === "documents" && <section className="documents-view modern-documents">
+          <div className="documents-hero">
+            <div className="view-heading"><p className="eyebrow">DOCUMENT WORKSPACE</p><h2>Documents</h2><p className="muted">Upload, process, analyze, and manage your documents with AI.</p></div>
+            <div className="hero-callout"><span>✦</span><div><strong>From documents to insights — powered by AI</strong><small>Upload. Process. Analyze. Understand.</small></div></div>
+          </div>
+          {(error || actionError) && <div className="alert wide">{error || actionError}</div>}
+          <div className="document-command-grid">
+            <div className="calm-upload"><UploadDocument token={token} onUploaded={() => onRefresh()} /></div>
+            <section className="how-card panel"><p className="eyebrow">WORKFLOW</p><h3>How it works?</h3>
+              {[["1","Upload","Select and upload your document"],["2","Process","We extract text using OCR"],["3","Analyze","AI analyzes and extracts key information"],["4","View","View structured data, confidence scores and compliance checks"]].map(([number,title,desc]) => <div className="how-step" key={number}><span>{number}</span><div><strong>{title}</strong><small>{desc}</small></div></div>)}
+            </section>
+          </div>
+          <section className="panel recent-documents-card"><div className="panel-heading"><div><p className="eyebrow">LIVE WORKSPACE</p><h3>Recent documents</h3><p className="muted">Your uploaded documents and their processing status.</p></div><span className="count-pill">{documents.length} total</span></div>
+            {loading ? <div className="empty-state"><span className="spinner" />Loading workspace data...</div> : documents.length === 0 ? <div className="empty-state"><strong>No documents yet</strong><span>Upload a document to start your intelligence workflow.</span></div> : <div className="document-list">{documents.map(doc => <DocumentRow key={doc.id} doc={doc} busy={busy} onAction={run} onView={setSelected} />)}</div>}
+          </section>
+        </section>}
 
         {view === "processing" && <section className="processing-view"><div className="view-heading"><p className="eyebrow">AI WORKFLOW</p><h2>AI Processing</h2><p className="muted">Track the document intelligence pipeline from ingestion to action.</p></div><section className="pipeline panel"><div><p className="eyebrow">PROCESSING PIPELINE</p><h3>From file to insight</h3></div><div className="pipeline-steps">{["Upload", "Extract", "Analyze", "Validate", "Act"].map((step, index) => <div className="pipeline-step" key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong>{index < 4 && <i />}</div>)}</div><small>{pending} document{pending === 1 ? "" : "s"} ready for processing</small></section></section>}
 
