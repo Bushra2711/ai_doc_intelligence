@@ -81,19 +81,10 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
     label_pattern = "|".join(rf"\b{re.escape(label)}\b" for label in labels)
     amount = _amount_pattern()
 
-    # Normal layout: Subtotal: INR 89,500.00
-    inline = re.search(
-        rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=\-])?\s*"
-        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}",
-        text,
-        flags=re.IGNORECASE,
-    )
-    if inline:
-        return _parse_amount(inline.group(1))
-
     # OCR/PDF layout: I 89,500.00\nSubtotal
-    # Keep this line-local/adjacent so a number elsewhere in the document
-    # cannot accidentally become the subtotal.
+    # Check the stacked form first. Otherwise an inline search for
+    # "Subtotal" can incorrectly consume the next labeled amount
+    # (for example, the CGST amount immediately after the subtotal label).
     stacked = re.search(
         rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}\s*\n\s*"
         rf"(?:{label_pattern})\b",
@@ -102,6 +93,18 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
     )
     if stacked:
         return _parse_amount(stacked.group(1))
+
+    # Normal layout: Subtotal: INR 89,500.00
+    # Keep the inline match on the same line so a following tax/total
+    # amount cannot be mistaken for this field.
+    inline = re.search(
+        rf"(?:{label_pattern})[ \t]*(?:\([^)]*\))?[ \t]*(?:[:=\-])?[ \t]*"
+        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?[ \t]*{amount}",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if inline:
+        return _parse_amount(inline.group(1))
 
     # Some OCR puts the label and amount on separate lines in the opposite
     # order with a separator line between them.
