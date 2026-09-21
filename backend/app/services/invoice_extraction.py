@@ -98,10 +98,6 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
 
     # OCR-stacked form: amount on one line, label on the next.
     lines = [line.strip() for line in text.splitlines()]
-    label_has_subtotal = any(
-        re.fullmatch(rf"(?:{label_pattern})", line, flags=re.IGNORECASE)
-        for line in lines
-    )
     for index, line in enumerate(lines[:-1]):
         if not line:
             continue
@@ -130,6 +126,12 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
             )
             if match:
                 return _parse_amount(match.group(1))
+
+    # Some OCR puts an amount before the label but inserts an OCR marker
+    # line such as currency "I" between the amount and the label:
+    # I 89,500.00
+    # Subtotal
+    # or occasionally a currency/marker line is separated from the label.
     return None
 
 
@@ -193,31 +195,52 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
             )
         )
 
-    # OCR-stacked layout:
+    lines = [line.strip() for line in text.splitlines()]
+
+    # OCR-stacked format:
     # I 5,370.00
     # CGST (6%)
     # I 5,370.00
-    lines = [line.strip() for line in text.splitlines()]
-    stacked = re.compile(rf"^\s*{label}\s*{rate}\s*$", flags=re.IGNORECASE)
-    for index, line in enumerate(lines[:-1]):
-        match = stacked.match(line)
+    # SGST (6%)
+    # A currency marker may appear on either the amount line or its own line.
+    stacked_label = re.compile(rf"^{label}\s*{rate}\s*$", flags=re.IGNORECASE)
+    amount_only = re.compile(
+        rf"^(?:INR|Rs\.?|₹|I|l)?\s*{amount}\s*$",
+        flags=re.IGNORECASE,
+    )
+
+    for index, line in enumerate(lines):
+        match = stacked_label.match(line)
         if not match:
             continue
-        amount_match = re.fullmatch(
-            rf"(?:INR|Rs\.?|₹|I|l)?\s*{amount}",
-            lines[index + 1],
-            flags=re.IGNORECASE,
-        )
-        if amount_match:
-            taxes.append(
-                TaxBreakdown(
-                    tax_type=match.group(1).upper(),
-                    rate=_parse_number(match.group(2)),
-                    amount=_parse_amount(amount_match.group(1)),
-                )
-            )
 
-    # Deduplicate if a layout happened to match both paths.
+        # First try the amount directly below the tax label.
+        for candidate_index in range(index + 1, min(index + 3, len(lines))):
+            candidate = lines[candidate_index]
+            amount_match = amount_only.match(candidate)
+            if amount_match:
+                taxes.append(
+                    TaxBreakdown(
+                        tax_type=match.group(1).upper(),
+                        rate=_parse_number(match.group(2)),
+                        amount=_parse_amount(amount_match.group(1)),
+                    )
+                )
+                break
+
+        # Also support amount-before-label layouts.
+        if index > 0 and amount_only.match(lines[index - 1]):
+            amount_match = amount_only.match(lines[index - 1])
+            if amount_match:
+                taxes.append(
+                    TaxBreakdown(
+                        tax_type=match.group(1).upper(),
+                        rate=_parse_number(match.group(2)),
+                        amount=_parse_amount(amount_match.group(1)),
+                    )
+                )
+
+    # Deduplicate if both layouts matched the same row.
     unique: list[TaxBreakdown] = []
     seen: set[tuple[str, float | None, float | None]] = set()
     for tax in taxes:
