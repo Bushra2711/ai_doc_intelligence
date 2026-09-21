@@ -130,12 +130,7 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
     """Extract common invoice table rows, including discount and tax columns."""
     items: list[InvoiceLineItem] = []
     amount = r"[0-9][0-9,]*(?:\.\s*[0-9]{1,2})?"
-    row_pattern = re.compile(
-        rf"^(\d+)\s+(.+?)\s+(\d{4,8})\s+(\d+(?:\.\d+)?)\s+"
-        rf"(AMT)(?:\s+(AMT))?\s+(\d+(?:\.\d+)?)%\s+(AMT)\s*$".replace("AMT","${amount}"),
-        re.IGNORECASE,
-    )
-    for line in text.splitlines():
+    row_pattern = re.compile(\n        r"^(\\d+)\\s+(.+?)\\s+(\\d{4,8})\\s+(\\d+(?:\\.\\d+)?)\\s+"\n        r"(AMT)(?:\\s+(AMT))?\\s+(\\d+(?:\\.\\d+)?)%\\s+(AMT)\\s*$".replace("AMT", amount),\n        re.IGNORECASE,\n    )\n    for line in text.splitlines():
         line = line.strip().rstrip("|").strip()
         if not line or re.match(r"^(s\.?\s*no|sl\.?|item\s+name)", line, re.IGNORECASE):
             continue
