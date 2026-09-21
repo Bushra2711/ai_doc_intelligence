@@ -9,6 +9,7 @@ Usage:
 
 The ground-truth CSV must contain document_id plus the invoice fields defined in
 invoice_ground_truth_template.csv. Only human-verified values should be entered.
+Do not run this evaluator against the blank template or model-generated predictions.
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ import csv
 import json
 import os
 import sys
+import argparse
 from collections import defaultdict
 from pathlib import Path
 from urllib import error, request
@@ -26,7 +28,7 @@ FIELDS = (
 )
 
 ROOT = Path(__file__).resolve().parent
-CSV_PATH = ROOT / "invoice_ground_truth_template.csv"
+CSV_PATH = ROOT / "invoice_ground_truth.csv"
 OUT_DIR = ROOT / "results"
 
 
@@ -62,17 +64,26 @@ def parse_value(name: str, value: str):
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Evaluate human-verified invoice ground truth.")
+    parser.add_argument(
+        "--ground-truth",
+        type=Path,
+        default=CSV_PATH,
+        help="CSV containing human-verified expected values (default: evaluation/invoice_ground_truth.csv)",
+    )
+    args = parser.parse_args()
+    csv_path = args.ground_truth if args.ground_truth.is_absolute() else (ROOT / args.ground_truth)
     base_url = os.getenv("DOCUMIND_API_URL", "http://127.0.0.1:8000")
     email = os.getenv("DOCUMIND_EMAIL")
     password = os.getenv("DOCUMIND_PASSWORD")
     if not email or not password:
         print("Set DOCUMIND_EMAIL and DOCUMIND_PASSWORD before running.", file=sys.stderr)
         return 2
-    if not CSV_PATH.exists():
-        print(f"Missing {CSV_PATH}", file=sys.stderr)
+    if not csv_path.exists():
+        print(f"Missing {csv_path}", file=sys.stderr)
         return 2
 
-    with CSV_PATH.open(newline="", encoding="utf-8-sig") as fh:
+    with csv_path.open(newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.DictReader(fh))
 
     if len(rows) != 50:
@@ -82,6 +93,19 @@ def main() -> int:
     missing_id = [i + 2 for i, row in enumerate(rows) if not row.get("document_id", "").strip()]
     if missing_id:
         print(f"Missing document_id in CSV rows: {missing_id}", file=sys.stderr)
+        return 2
+
+    missing_ground_truth = []
+    for row_number, row in enumerate(rows, start=2):
+        for field in FIELDS:
+            if not row.get(field, "").strip():
+                missing_ground_truth.append(f"row {row_number}: {field}")
+    if missing_ground_truth:
+        print("Ground truth is incomplete. Fill every expected field with human-verified values.")
+        for item in missing_ground_truth[:20]:
+            print(f"  - {item}")
+        if len(missing_ground_truth) > 20:
+            print(f"  ... and {len(missing_ground_truth) - 20} more")
         return 2
 
     token = http_json(
