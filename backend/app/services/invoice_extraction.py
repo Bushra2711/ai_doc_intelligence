@@ -98,6 +98,10 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
 
     # OCR-stacked form: amount on one line, label on the next.
     lines = [line.strip() for line in text.splitlines()]
+    label_has_subtotal = any(
+        re.fullmatch(rf"(?:{label_pattern})", line, flags=re.IGNORECASE)
+        for line in lines
+    )
     for index, line in enumerate(lines[:-1]):
         if not line:
             continue
@@ -113,6 +117,9 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
                 return _parse_amount(match.group(1))
 
     # Reverse-stacked form: label on one line, amount on the next.
+    # Only use this when the label itself appears standalone. This prevents
+    # a broad label such as "total" from matching "Total Tax" / "Grand Total"
+    # and stealing the adjacent tax amount.
     for index, line in enumerate(lines[:-1]):
         if re.fullmatch(rf"(?:{label_pattern})[:=\-]?", line, flags=re.IGNORECASE):
             match = re.search(
