@@ -214,7 +214,29 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
         if not match:
             continue
 
-        # First try the amount directly below the tax label.
+        # In OCR-stacked layouts an amount can appear immediately before
+        # the label. When both sides contain amounts, prefer the preceding
+        # amount only when the line two positions above is another tax label;
+        # otherwise the preceding amount normally belongs to the previous
+        # invoice row (for example Subtotal before the first CGST row).
+        preceding_tax = (
+            index >= 2
+            and stacked_label.match(lines[index - 2])
+            and amount_only.match(lines[index - 1])
+        )
+        if preceding_tax:
+            amount_match = amount_only.match(lines[index - 1])
+            if amount_match:
+                taxes.append(
+                    TaxBreakdown(
+                        tax_type=match.group(1).upper(),
+                        rate=_parse_number(match.group(2)),
+                        amount=_parse_amount(amount_match.group(1)),
+                    )
+                )
+            continue
+
+        # Otherwise prefer the amount directly below the tax label.
         for candidate_index in range(index + 1, min(index + 3, len(lines))):
             candidate = lines[candidate_index]
             amount_match = amount_only.match(candidate)
@@ -228,9 +250,8 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
                 )
                 break
 
-        # If the amount is not below the label, support amount-before-label.
-        # Do not add a second candidate when a valid amount was already found
-        # below the label; the preceding amount can belong to the previous row.
+        # If the amount is not below the label, support amount-before-label
+        # when there is no preceding tax row to identify the association.
         else:
             if index > 0 and amount_only.match(lines[index - 1]):
                 amount_match = amount_only.match(lines[index - 1])
