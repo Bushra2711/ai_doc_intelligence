@@ -183,7 +183,7 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
 
     # Normal layout: CGST (9%): INR 7,335.00
     inline = re.compile(
-        rf"\b{label}\s*{rate}\s*[:=-]?\s*(?:INR|Rs\.?|₹|I|l)?\s*{amount}",
+        rf"\b{label}[ \t]*{rate}[ \t]*[:=-]?[ \t]*(?:INR|Rs\.?|₹|I|l)?[ \t]*{amount}",
         flags=re.IGNORECASE,
     )
     for match in inline.finditer(text):
@@ -228,17 +228,20 @@ def _extract_tax_breakdown(text: str) -> list[TaxBreakdown]:
                 )
                 break
 
-        # Also support amount-before-label layouts.
-        if index > 0 and amount_only.match(lines[index - 1]):
-            amount_match = amount_only.match(lines[index - 1])
-            if amount_match:
-                taxes.append(
-                    TaxBreakdown(
-                        tax_type=match.group(1).upper(),
-                        rate=_parse_number(match.group(2)),
-                        amount=_parse_amount(amount_match.group(1)),
+        # If the amount is not below the label, support amount-before-label.
+        # Do not add a second candidate when a valid amount was already found
+        # below the label; the preceding amount can belong to the previous row.
+        else:
+            if index > 0 and amount_only.match(lines[index - 1]):
+                amount_match = amount_only.match(lines[index - 1])
+                if amount_match:
+                    taxes.append(
+                        TaxBreakdown(
+                            tax_type=match.group(1).upper(),
+                            rate=_parse_number(match.group(2)),
+                            amount=_parse_amount(amount_match.group(1)),
+                        )
                     )
-                )
 
     # Deduplicate if both layouts matched the same row.
     unique: list[TaxBreakdown] = []
