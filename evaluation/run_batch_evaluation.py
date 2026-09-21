@@ -123,11 +123,19 @@ def main() -> int:
     # original filename (TCS-TEST-0012.pdf) or by the invoice number.
     import re
     api_by_filename = {str(doc.get("filename", "")).lower(): doc for doc in documents}
+    api_by_stored_path = {}
     api_by_invoice = {}
     for doc in documents:
+        stored_name = Path(str(doc.get("file_path", ""))).name.lower()
+        if stored_name:
+            api_by_stored_path[stored_name] = doc
         match = re.search(r"TCS-TEST-\\d{4}", str(doc.get("filename", "")), re.IGNORECASE)
         if match:
             api_by_invoice[match.group(0).upper()] = doc
+        if not match:
+            match = re.search(r"TCS-TEST-\\d{4}", stored_name, re.IGNORECASE)
+            if match:
+                api_by_invoice[match.group(0).upper()] = doc
 
     resolved = []
     unresolved = []
@@ -139,6 +147,8 @@ def main() -> int:
             invoice_match = re.search(r"TCS-TEST-\\d{4}", local_id, re.IGNORECASE)
             invoice_number = invoice_match.group(0).upper() if invoice_match else ""
             doc = api_by_invoice.get(invoice_number)
+            if doc is None:
+                doc = api_by_stored_path.get(f"{local_id.lower()}.pdf")
             if doc is None:
                 doc = api_by_filename.get(f"{local_id.lower()}.pdf")
         if doc is None:
