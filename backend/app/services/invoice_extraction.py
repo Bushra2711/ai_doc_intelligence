@@ -131,8 +131,8 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
     items: list[InvoiceLineItem] = []
     amount = r"[0-9][0-9,]*(?:\.\s*[0-9]{1,2})?"
     row_pattern = re.compile(
-        r"^(\\d+)\\s+(.+?)\\s+(\\d{4,8})\\s+(\\d+(?:\\.\\d+)?)\\s+"
-        r"(AMT)(?:\\s+(AMT))?\\s+(\\d+(?:\\.\\d+)?)%\\s+(AMT)\\s*$".replace("AMT", amount),
+        r"^(\d+)\s+(.+?)\s+(\d{4,8})\s+(\d+(?:\.\d+)?)\s+"
+        r"(AMT)(?:\s+(AMT))?\s+(\d+(?:\.\d+)?)%\s+(AMT)\s*$".replace("AMT", amount),
         re.IGNORECASE,
     )
     lines = [line.strip().rstrip("|").strip() for line in text.splitlines()]
@@ -155,7 +155,7 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
     # 1 / USB Hub / 8471 / 7 / 1250.00 / 100.00 / 18% / 8650.00
     index = 0
     while index < len(lines):
-        if not re.fullmatch(r"\\d+", lines[index]):
+        if not re.fullmatch(r"\d+", lines[index]):
             index += 1
             continue
         number = int(lines[index])
@@ -166,10 +166,10 @@ def _extract_line_items(text: str) -> list[InvoiceLineItem]:
         discount_or_tax = lines[index + 5]
         tax_or_amount = lines[index + 6]
         amount_value = lines[index + 7]
-        if (re.fullmatch(r"\\d{4,8}", hsn) and _parse_number(qty) is not None
+        if (re.fullmatch(r"\d{4,8}", hsn) and _parse_number(qty) is not None
                 and _parse_amount(unit_price) is not None
                 and re.fullmatch(rf"{amount}", discount_or_tax)
-                and re.fullmatch(r"\\d+(?:\\.\\d+)?%", tax_or_amount)
+                and re.fullmatch(r"\d+(?:\.\d+)?%", tax_or_amount)
                 and _parse_amount(amount_value) is not None):
             items.append(InvoiceLineItem(
                 line_number=number, description=_clean(description), hsn_code=hsn,
