@@ -74,10 +74,41 @@ def _amount_pattern() -> str:
 
 
 def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
+    """Extract labeled amounts from inline and OCR-stacked layouts."""
     label_pattern = "|".join(rf"\b{re.escape(label)}\b" for label in labels)
-    pattern = rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=\-])?\s*(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{_amount_pattern()}"
-    match = re.search(pattern, text, flags=re.IGNORECASE)
-    return _parse_amount(match.group(1)) if match else None
+    amount = _amount_pattern()
+
+    # Normal layout: Subtotal: INR 89,500.00
+    inline = re.search(
+        rf"(?:{label_pattern})\s*(?:\([^)]*\))?\s*(?:[:=\-])?\s*"
+        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if inline:
+        return _parse_amount(inline.group(1))
+
+    # OCR/PDF layout: I 89,500.00\nSubtotal
+    # Keep this line-local/adjacent so a number elsewhere in the document
+    # cannot accidentally become the subtotal.
+    stacked = re.search(
+        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}\s*\n\s*"
+        rf"(?:{label_pattern})\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if stacked:
+        return _parse_amount(stacked.group(1))
+
+    # Some OCR puts the label and amount on separate lines in the opposite
+    # order with a separator line between them.
+    reverse_stacked = re.search(
+        rf"(?:{label_pattern})\s*\n\s*(?:[:=\-]\s*)?"
+        rf"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*{amount}",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return _parse_amount(reverse_stacked.group(1)) if reverse_stacked else None
 
 
 def _extract_currency(text: str) -> str | None:
@@ -228,7 +259,20 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     invoice_date = _first_group(normalized_text, (rf"(?:invoice\s*date|date\s*of\s*invoice|date)\s*[:=-]?\s*({DATE_PATTERN})",))
     due_date = _first_group(normalized_text, (rf"(?:due\s*date|payment\s*due)\s*[:=-]?\s*({DATE_PATTERN})",))
     gstins = [match.upper() for match in GSTIN_PATTERN.findall(normalized_text)]
-    vendor_gstin = gstins[0] if gstins else None; buyer_gstin = gstins[1] if len(gstins) > 1 else None
+    vendor_gstin = gstins[0] if gstins else None
+    buyer_gstin = gstins[1] if len(gstins) > 1 else None
+
+    # If OCR/layout causes the generic GSTIN scan to miss the second party,
+    # recover a GSTIN explicitly associated with Bill To / Buyer.
+    if buyer_gstin is None:
+        buyer_match = re.search(
+            r"(?:bill\s*to|billed\s*to|buyer(?:\s*gstin)?)"
+            r"[\s\S]{0,180}?\b(\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d])\b",
+            normalized_text,
+            flags=re.IGNORECASE,
+        )
+        if buyer_match:
+            buyer_gstin = buyer_match.group(1).upper()
     vendor_name = _extract_party_name(normalized_text, ("vendor", "supplier", "seller", "from", "vendor name", "supplier name", "company name", "company")) or _infer_vendor_name(normalized_text)
     buyer_name = _extract_party_name(normalized_text, ("buyer", "customer", "bill to", "billed to", "buyer name", "customer name"))
     po_number = _first_group(normalized_text, (r"(?:purchase\s*order|order|po)\s*(?:no|number|#)?\s*[:=-]?\s*(PO[-\w]+)",))
