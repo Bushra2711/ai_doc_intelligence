@@ -50,6 +50,7 @@ def main() -> None:
         confidence_scores: list[float] = []
         compliance_statuses: list[str] = []
         check_statuses: Counter[str] = Counter()
+        failure_rules: Counter[str] = Counter()
 
         for index, document in enumerate(documents, start=1):
             extracted = text_by_document.get(document.id)
@@ -66,8 +67,13 @@ def main() -> None:
             confidence_scores.append(score)
             compliance_statuses.append(str(compliance["overall_status"]))
 
+            failed_rules: list[str] = []
             for check in compliance["checks"]:
                 check_statuses[check["status"]] += 1
+                if check["status"] == "FAIL":
+                    rule = str(check["rule"])
+                    failure_rules[rule] += 1
+                    failed_rules.append(rule)
 
             rows.append(
                 {
@@ -79,6 +85,7 @@ def main() -> None:
                     "compliance_passed": compliance["passed"],
                     "compliance_warnings": compliance["warnings"],
                     "compliance_failed": compliance["failed"],
+                    "compliance_failed_rules": ";".join(failed_rules),
                 }
             )
 
@@ -111,6 +118,7 @@ def main() -> None:
             "total_compliance_pass_checks": check_statuses.get("PASS", 0),
             "total_compliance_warning_checks": check_statuses.get("WARNING", 0),
             "total_compliance_failed_checks": check_statuses.get("FAIL", 0),
+            "compliance_failure_rules": dict(sorted(failure_rules.items())),
         }
 
         report = {
@@ -129,6 +137,7 @@ def main() -> None:
                 "Confidence scores are evidence-based heuristic scores, not calibrated probabilities.",
                 "Compliance checks validate the implemented rules and extracted values; they do not establish legal or tax compliance.",
                 "The evaluation uses synthetic GST-style invoices and should not be treated as evidence of performance on all real-world invoice formats.",
+                "Synthetic GSTIN-like test identifiers may fail the strict GSTIN structure rule; such failures should not be interpreted as extraction failures.",
             ],
             "summary": summary,
         }
@@ -144,7 +153,7 @@ def main() -> None:
             writer = csv.writer(file)
             writer.writerow(["metric", "value"])
             for key, value in summary.items():
-                writer.writerow([key, value])
+                writer.writerow([key, json.dumps(value) if isinstance(value, dict) else value])
 
         with (RESULTS / "invoice_quality_invoice_results.csv").open(
             "w", newline="", encoding="utf-8"
@@ -172,6 +181,12 @@ def main() -> None:
             f"Checks: {summary['total_compliance_pass_checks']} PASS, "
             f"{summary['total_compliance_warning_checks']} WARNING, "
             f"{summary['total_compliance_failed_checks']} FAIL"
+        )
+        print(
+            "Failure rules: "
+            + (", ".join(
+                f"{rule}={count}" for rule, count in sorted(failure_rules.items())
+            ) if failure_rules else "none")
         )
         print(f"Reports: {RESULTS}")
 
