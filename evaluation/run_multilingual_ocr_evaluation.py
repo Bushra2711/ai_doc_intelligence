@@ -96,6 +96,7 @@ def normalize(value: object) -> str:
 
 def find_font() -> Path:
     candidates = [
+        Path(r"C:\Windows\Fonts\Nirmala.ttc"),
         Path(r"C:\Windows\Fonts\Nirmala.ttf"),
         Path(r"C:\Windows\Fonts\NirmalaUI.ttf"),
         Path(r"C:\Windows\Fonts\mangal.ttf"),
