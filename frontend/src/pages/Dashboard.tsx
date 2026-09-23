@@ -154,11 +154,20 @@ export default function Dashboard({ token, documents, loading, error, userName, 
               </select>
             </div>
 
-            {loading ? <div className="empty-state"><span className="spinner" />Loading workspace data...</div> : filteredDocuments.length === 0 ? <div className="empty-state"><strong>No matching documents</strong><span>Try changing your search or filters.</span></div> : <>
-              <div className="document-table-head"><span>Name</span><span>Type</span><span>Size</span><span>Uploaded on</span><span>Status</span><span>Actions</span></div>
-              <div className="document-list">{filteredDocuments.map(doc => <DocumentRow key={doc.id} doc={doc} busy={busy} onAction={run} onView={setSelected} />)}</div>
-            </>}
-          </section>
+            {loading ? (
+              <div className="empty-state"><span className="spinner" />Loading workspace data...</div>
+            ) : filteredDocuments.length === 0 ? (
+              <div className="empty-state"><strong>No matching documents</strong><span>Try changing your search or filters.</span></div>
+            ) : (
+              <>
+                <div className="document-table-head"><span>Name</span><span>Type</span><span>Size</span><span>Uploaded on</span><span>Status</span><span>Actions</span></div>
+                <div className="document-list">
+                  {filteredDocuments.map((doc) => (
+                    <DocumentRow key={doc.id} doc={doc} busy={busy} onAction={run} onView={setSelected} />
+                  ))}
+                </div>
+              </>
+            )}          </section>
         </section>
 
         {view === "processing" && <section className="processing-view"><div className="view-heading"><p className="eyebrow">AI WORKFLOW</p><h2>AI Processing</h2><p className="muted">Track the document intelligence pipeline from ingestion to action.</p></div><section className="pipeline panel"><div><p className="eyebrow">PROCESSING PIPELINE</p><h3>From file to insight</h3></div><div className="pipeline-steps">{["Upload", "Extract", "Analyze", "Validate", "Act"].map((step, index) => <div className="pipeline-step" key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong>{index < 4 && <i />}</div>)}</div><small>{pending} document{pending === 1 ? "" : "s"} ready for processing</small></section></section>}
