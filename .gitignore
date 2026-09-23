@@ -25,3 +25,10 @@ Thumbs.db
 backend/.alembic/
 frontend/.vite/
 *.log
+# Local evaluation artifacts
+evaluation/50_invoice_review.csv
+evaluation/invoice_ground_truth.csv
+evaluation/handwritten_samples/
+evaluation/multilingual_samples/
+evaluation/results/
+evaluation_backup/
