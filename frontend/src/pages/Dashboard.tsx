@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import UploadDocument from "../components/UploadDocument";
-import DashboardAnalytics from "../components/DashboardAnalytics";
 import AuditTrail from "../components/AuditTrail";
+import OverviewDashboard from "../components/OverviewDashboard";
 import { api, friendlyError } from "../services/api";
-import type { DocumentRecord, InvoiceExtraction, InvoiceCompliance, InvoiceConfidence } from "../services/api";
+import type { DocumentRecord, InvoiceExtraction, InvoiceCompliance, InvoiceConfidence, DashboardMetrics } from "../services/api";
 
 type View = "overview" | "documents" | "processing" | "audit";
 type Props = { token: string; documents: DocumentRecord[]; loading: boolean; error: string; userName: string; onRefresh: () => void; onLogout: () => void };
@@ -13,6 +13,7 @@ export default function Dashboard({ token, documents, loading, error, userName, 
   const [selected, setSelected] = useState<DocumentRecord | null>(null);
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
+  const [overviewMetrics, setOverviewMetrics] = useState<DashboardMetrics | null>(null);
   const completed = documents.filter(d => d.status === "completed").length;
   const processing = documents.filter(d => d.status === "processing").length;
   const failed = documents.filter(d => d.status === "failed").length;
@@ -22,6 +23,12 @@ export default function Dashboard({ token, documents, loading, error, userName, 
     document.documentElement.dataset.dashboardView = view;
     return () => { delete document.documentElement.dataset.dashboardView; };
   }, [view]);
+
+  useEffect(() => {
+    let active = true;
+    void api.dashboardMetrics(token).then((result) => { if (active) setOverviewMetrics(result); }).catch(() => { if (active) setOverviewMetrics(null); });
+    return () => { active = false; };
+  }, [token]);
 
   useEffect(() => {
     const handleProcess = (event: Event) => {
@@ -84,14 +91,18 @@ export default function Dashboard({ token, documents, loading, error, userName, 
       </header>
 
       <div className="content">
-        {view === "overview" && <>
-          <div className="hero-row"><div><p className="eyebrow cyan">INTELLIGENT DOCUMENT OPERATIONS</p><h2>Your document command center</h2><p className="muted">Ingest, understand, and act on your business content.</p></div></div>
-          {(error || actionError) && <div className="alert wide">{error || actionError}</div>}
-          <div className="calm-upload"><UploadDocument token={token} onUploaded={() => onRefresh()} /></div>
-          <section className="calm-kpi-wrap"><p className="eyebrow">KPI ANALYTICS</p><h3>Operational intelligence</h3><p className="muted">Live metrics from your document processing workspace.</p></section>
-          <section className="metric-grid"><Metric label="Total documents" value={documents.length} tone="blue" /><Metric label="Completed" value={completed} tone="green" /><Metric label="In progress" value={processing} tone="amber" /><Metric label="Needs attention" value={failed} tone="red" /></section>
-          <DashboardAnalytics token={token} />
-        </>}
+        {view === "overview" && <OverviewDashboard
+          token={token}
+          userName={userName}
+          documents={documents}
+          metrics={overviewMetrics}
+          completed={completed}
+          processing={processing}
+          failed={failed}
+          error={error || actionError}
+          onRefresh={onRefresh}
+          onView={setSelected}
+        />}
 
         {view === "documents" && <section className="documents-view modern-documents">
           <div className="documents-hero">
