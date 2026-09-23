@@ -586,3 +586,45 @@ html[data-dashboard-view="overview"] .hero-row .muted{max-width:680px!important}
  .recent-documents-card .row-actions{width:100%}.recent-documents-card .row-actions button{flex:1}
  .how-card{display:block}
 }
+
+
+/* Documents page: align navigation/header with the new DocuMind SaaS theme */
+html:has(.modern-documents) .sidebar {
+  background:linear-gradient(180deg,#0b1d32,#102942)!important;
+  border-right:1px solid #173652!important;
+  box-shadow:10px 0 35px rgba(5,20,40,.10)!important;
+}
+html:has(.modern-documents) .logo-lockup strong { color:#fff!important; }
+html:has(.modern-documents) .logo-lockup span { color:#91a9c0!important; }
+html:has(.modern-documents) .brand-mark {
+  background:linear-gradient(135deg,#2d9df5,#2566d8)!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px rgba(37,102,216,.24)!important;
+}
+html:has(.modern-documents) .side-nav-item { color:#a8bdd2!important; border-color:transparent!important; }
+html:has(.modern-documents) .side-nav-item:hover { background:#153552!important; color:#fff!important; }
+html:has(.modern-documents) .side-nav-item.active {
+  background:linear-gradient(90deg,#0d76c9,#1b8ce5)!important;
+  color:#fff!important;
+  border-color:#2aa0f5!important;
+  box-shadow:0 8px 20px rgba(13,118,201,.22)!important;
+}
+html:has(.modern-documents) .sidebar-foot { color:#8fa8c2!important; border-top-color:rgba(255,255,255,.09)!important; }
+html:has(.modern-documents) .workspace { background:#f4f8fc!important; }
+html:has(.modern-documents) .topbar {
+  background:#fff!important;
+  border-bottom:1px solid #e4ebf2!important;
+  box-shadow:0 2px 14px rgba(15,45,70,.04)!important;
+}
+html:has(.modern-documents) .content { background:#f4f8fc!important; }
+html:has(.modern-documents) .documents-hero .view-heading h2 { color:#102d54!important; }
+html:has(.modern-documents) .documents-hero .view-heading .eyebrow { color:#2581b9!important; }
+html:has(.modern-documents) .document-command-grid > .calm-upload .upload-panel,
+html:has(.modern-documents) .how-card,
+html:has(.modern-documents) .recent-documents-card {
+  box-shadow:0 10px 28px rgba(20,54,80,.055)!important;
+  border-color:#dfe8ef!important;
+}
+html:has(.modern-documents) .hero-callout {
+  box-shadow:0 8px 24px rgba(37,140,244,.06)!important;
+}
