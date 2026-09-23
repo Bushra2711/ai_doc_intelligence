@@ -27,6 +27,8 @@ from app.services.invoice_extraction import extract_invoice_fields_dict
 from app.services.invoice_accuracy import evaluate_invoice_accuracy
 from app.services.invoice_compliance import evaluate_invoice_compliance
 from app.services.invoice_confidence import invoice_confidence_dict
+from app.schemas.explainability import DocumentExplainabilityResponse
+from app.services.explainability_service import explain_invoice_validation
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 UPLOAD_DIRECTORY = Path(__file__).resolve().parents[4] / "uploads"
@@ -100,6 +102,19 @@ def invoice_compliance(document_id: str, current_user: User = Depends(get_curren
     extracted_text = db.scalar(select(ExtractedDocumentText).where(ExtractedDocumentText.document_id == document.id))
     if extracted_text is None: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Extracted text not found. Process the document first.")
     return InvoiceComplianceResponse(document_id=document.id, **evaluate_invoice_compliance(extract_invoice_fields_dict(extracted_text.extracted_text)))
+
+
+@router.get("/{document_id}/explainability", response_model=DocumentExplainabilityResponse)
+def document_explainability(document_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> DocumentExplainabilityResponse:
+    """Return SHAP explainability for the deterministic invoice validation layer."""
+    document = db.scalar(select(Document).where(Document.id == document_id, Document.user_id == current_user.id))
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    extracted_text = db.scalar(select(ExtractedDocumentText).where(ExtractedDocumentText.document_id == document.id))
+    if extracted_text is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Extracted text not found. Process the document first.")
+    fields = extract_invoice_fields_dict(extracted_text.extracted_text)
+    return DocumentExplainabilityResponse(document_id=document.id, **explain_invoice_validation(fields))
 
 
 @router.post("/{document_id}/evaluate-accuracy", response_model=InvoiceAccuracyResponse)
