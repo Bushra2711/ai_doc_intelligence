@@ -161,3 +161,15 @@ html[data-dashboard-view="overview"] .dot-0 { background:#258cf4; }.dot-1 { back
   html[data-dashboard-view="overview"] .workflow-node i { display:none; }
   html[data-dashboard-view="overview"] .workflow-buttons { grid-template-columns:1fr; }
 }
+
+
+html[data-dashboard-view="overview"] .topbar-search {
+  width:min(520px,52vw); height:38px; display:flex; align-items:center; gap:10px; padding:0 11px;
+  border:1px solid #dfe7ee; border-radius:9px; background:#f7f9fb; color:#7990a4;
+}
+html[data-dashboard-view="overview"] .topbar-search > span { font-size:20px; line-height:1; color:#68849a; }
+html[data-dashboard-view="overview"] .topbar-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:#29465e; font-size:12px; }
+html[data-dashboard-view="overview"] .topbar-search input::placeholder { color:#8ea0af; }
+html[data-dashboard-view="overview"] .topbar-search kbd { padding:4px 7px; border:1px solid #dce5ec; border-radius:5px; background:#fff; color:#8295a5; font:10px "DM Sans",sans-serif; }
+@media(max-width:760px){html[data-dashboard-view="overview"] .topbar-search{width:48vw}.topbar-search kbd{display:none}}
+@media(max-width:520px){html[data-dashboard-view="overview"] .topbar-search{display:none}}
