@@ -31,8 +31,8 @@
 
 These require actual execution or external artifacts and should not be claimed from source code alone:
 
-- Handwritten-document evaluation evidence.
-- Multilingual-document evaluation evidence.
+- Handwritten-document evaluation evidence: pilot completed; 1 handwritten invoice-style sample evaluated with Tesseract 5.5.3 using PSM 6 and PSM 11; 0/8 exact field-presence matches (0.00%) for both modes. See `docs/22-handwritten-ocr-evaluation.md` and `evaluation/results/handwritten_ocr_report.json`.
+- Multilingual-document evaluation evidence: executed on 6 synthetic bilingual/Hindi document images using Tesseract `eng+hin`; 18/48 business-field presences retained (37.50%). See `evaluation/results/multilingual_ocr_report.json`.
 - Native Power BI (.pbix) or Tableau (.twb/.twbx) artifact if required by the evaluator.
 - Cloud deployment evidence and Azure service configuration, if required.
 - Kubernetes deployment evidence, if required.
@@ -49,7 +49,8 @@ These require actual execution or external artifacts and should not be claimed f
 - OCR evidence measures business-field information retention rather than character-perfect transcription.
 - Processing-time values are local benchmark measurements, not a universal production SLA.
 - Compliance checks validate implemented application rules and do not establish legal or tax compliance.
-- Handwritten and multilingual capabilities remain unvalidated until corresponding executed evidence is produced.
+- Handwritten capability has pilot evidence but is not representative of real-world handwriting performance; only one handwritten sample was evaluated.
+- Multilingual capability has executed synthetic evidence, but the 37.50% field-presence result reflects a small synthetic dataset and should not be treated as general Hindi OCR accuracy.
 
 ## Submission rule
 
