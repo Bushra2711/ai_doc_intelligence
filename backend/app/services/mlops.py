@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 import os
 from contextlib import contextmanager
 from typing import Any, Iterator
+
+logger = logging.getLogger(__name__)
 
 try:
     import mlflow
@@ -43,8 +46,8 @@ def tracked_run(run_name: str, params: dict[str, Any] | None = None) -> Iterator
         if params:
             try:
                 mlflow.log_params(params)
-            except Exception:  # pragma: no cover - external tracking failure
-                pass
+            except Exception as exc:  # pragma: no cover - external tracking failure
+                logger.warning("MLflow parameter logging failed: %s", exc)
         yield
 
 
@@ -53,5 +56,5 @@ def log_metrics(metrics: dict[str, float]) -> None:
         return
     try:
         mlflow.log_metrics(metrics)
-    except Exception:  # pragma: no cover - external tracking failure
-        pass
+    except Exception as exc:  # pragma: no cover - external tracking failure
+        logger.warning("MLflow metric logging failed: %s", exc)
