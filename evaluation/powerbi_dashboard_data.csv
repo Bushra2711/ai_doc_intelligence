@@ -1,0 +1,26 @@
+Metric,Value,Unit,Category,Source
+Invoices Evaluated,50,invoices,Overview,invoice_accuracy_summary.csv
+Overall Extraction Accuracy,100,%,Extraction,invoice_accuracy_summary.csv
+Overall OCR Field Retention,98.8,%,OCR,ocr_accuracy_summary.csv
+Average Confidence,96,%,Quality,invoice_quality_summary.csv
+Median Confidence,96,%,Quality,invoice_quality_summary.csv
+Minimum Confidence,96,%,Quality,invoice_quality_summary.csv
+Maximum Confidence,96,%,Quality,invoice_quality_summary.csv
+High Confidence Invoices,50,invoices,Quality,invoice_quality_summary.csv
+Medium Confidence Invoices,0,invoices,Quality,invoice_quality_summary.csv
+Low Confidence Invoices,0,invoices,Quality,invoice_quality_summary.csv
+Successful Invoices,50,invoices,Performance,processing_time_summary.csv
+Failed Invoices,0,invoices,Performance,processing_time_summary.csv
+Total Processing Time,2.301756,seconds,Performance,processing_time_summary.csv
+Mean Processing Time,46.035,ms,Performance,processing_time_summary.csv
+Median Processing Time,44.558,ms,Performance,processing_time_summary.csv
+P95 Processing Time,53.809,ms,Performance,processing_time_summary.csv
+Minimum Processing Time,35.069,ms,Performance,processing_time_summary.csv
+Maximum Processing Time,92.142,ms,Performance,processing_time_summary.csv
+Compliant Invoices,0,invoices,Compliance,invoice_quality_summary.csv
+Compliant With Warnings,0,invoices,Compliance,invoice_quality_summary.csv
+Non-Compliant Invoices,50,invoices,Compliance,invoice_quality_summary.csv
+Compliance Checks Passed,450,checks,Compliance,invoice_quality_summary.csv
+Compliance Checks Warning,0,checks,Compliance,invoice_quality_summary.csv
+Compliance Checks Failed,50,checks,Compliance,invoice_quality_summary.csv
+Compliance Failure Rule - buyer_gstin_format,50,failures,Compliance,invoice_quality_summary.csv
