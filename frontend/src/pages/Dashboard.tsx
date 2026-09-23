@@ -170,7 +170,31 @@ export default function Dashboard({ token, documents, loading, error, userName, 
             )}          </section>
         </section>
 
-        {view === "processing" && <section className="processing-view"><div className="view-heading"><p className="eyebrow">AI WORKFLOW</p><h2>AI Processing</h2><p className="muted">Track the document intelligence pipeline from ingestion to action.</p></div><section className="pipeline panel"><div><p className="eyebrow">PROCESSING PIPELINE</p><h3>From file to insight</h3></div><div className="pipeline-steps">{["Upload", "Extract", "Analyze", "Validate", "Act"].map((step, index) => <div className="pipeline-step" key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong>{index < 4 && <i />}</div>)}</div><small>{pending} document{pending === 1 ? "" : "s"} ready for processing</small></section></section>}
+        {view === "processing" && (
+          <section className="processing-view">
+            <div className="view-heading">
+              <p className="eyebrow">AI WORKFLOW</p>
+              <h2>AI Processing</h2>
+              <p className="muted">Track the document intelligence pipeline from ingestion to action.</p>
+            </div>
+            <section className="pipeline panel">
+              <div>
+                <p className="eyebrow">PROCESSING PIPELINE</p>
+                <h3>From file to insight</h3>
+              </div>
+              <div className="pipeline-steps">
+                {["Upload", "Extract", "Analyze", "Validate", "Act"].map((step, index) => (
+                  <div className="pipeline-step" key={step}>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <strong>{step}</strong>
+                    {index < 4 && <i />}
+                  </div>
+                ))}
+              </div>
+              <small>{pending} document{pending === 1 ? "" : "s"} ready for processing</small>
+            </section>
+          </section>
+        )}
 
         {view === "audit" && <section className="audit-view"><div className="view-heading"><p className="eyebrow">GOVERNANCE</p><h2>Audit logs</h2><p className="muted">Traceable activity across your document workspace.</p></div><AuditTrail token={token} /></section>}
       </div>
