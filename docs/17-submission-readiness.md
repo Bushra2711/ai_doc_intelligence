@@ -14,6 +14,7 @@
 - Automated backend tests and GitHub Actions.
 - Docker Compose with PostgreSQL, ChromaDB and MLflow.
 - Power BI/Tableau-ready CSV artifact.
+- Native Power BI evaluation dashboard created in Power BI Desktop; see `docs/23-powerbi-dashboard-evidence.md`. Retain `AI_Document_Intelligence_Evaluation_Dashboard.pbix` in the final submission package.
 - Repeatable invoice accuracy evaluation service.
 - Formal TCS-style test design document.
 - Formal TCS-style test case document with TC01-TC12.
@@ -33,7 +34,6 @@ These require actual execution or external artifacts and should not be claimed f
 
 - Handwritten-document evaluation evidence: pilot completed; 1 handwritten invoice-style sample evaluated with Tesseract 5.5.3 using PSM 6 and PSM 11; 0/8 exact field-presence matches (0.00%) for both modes. See `docs/22-handwritten-ocr-evaluation.md` and `evaluation/results/handwritten_ocr_report.json`.
 - Multilingual-document evaluation evidence: executed on 6 synthetic bilingual/Hindi document images using Tesseract `eng+hin`; 18/48 business-field presences retained (37.50%). See `evaluation/results/multilingual_ocr_report.json`.
-- Native Power BI (.pbix) or Tableau (.twb/.twbx) artifact if required by the evaluator.
 - Cloud deployment evidence and Azure service configuration, if required.
 - Kubernetes deployment evidence, if required.
 - SHAP/LIME explainability evidence, if required.
