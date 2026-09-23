@@ -14,10 +14,25 @@ export default function Dashboard({ token, documents, loading, error, userName, 
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
   const [overviewMetrics, setOverviewMetrics] = useState<DashboardMetrics | null>(null);
+  const [documentSearch, setDocumentSearch] = useState("");
+  const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
+  const [documentStatusFilter, setDocumentStatusFilter] = useState("all");
+  const [documentSort, setDocumentSort] = useState("newest");
   const completed = documents.filter(d => d.status === "completed").length;
   const processing = documents.filter(d => d.status === "processing").length;
   const failed = documents.filter(d => d.status === "failed").length;
   const pending = documents.filter(d => d.status === "uploaded" || d.status === "pending").length;
+  const filteredDocuments = [...documents]
+    .filter((doc) => {
+      const q = documentSearch.trim().toLowerCase();
+      const matchesSearch = !q || doc.filename.toLowerCase().includes(q) || doc.file_type.toLowerCase().includes(q);
+      const matchesType = documentTypeFilter === "all" || doc.file_type.toLowerCase() === documentTypeFilter;
+      const matchesStatus = documentStatusFilter === "all" || doc.status === documentStatusFilter;
+      return matchesSearch && matchesType && matchesStatus;
+    })
+    .sort((a, b) => documentSort === "newest"
+      ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      : new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   useEffect(() => {
     document.documentElement.dataset.dashboardView = view;
@@ -106,20 +121,45 @@ export default function Dashboard({ token, documents, loading, error, userName, 
 
         {view === "documents" && <section className="documents-view modern-documents">
           <div className="documents-hero">
-            <div className="view-heading"><p className="eyebrow">DOCUMENT WORKSPACE</p><h2>Documents</h2><p className="muted">Upload, process, analyze, and manage your documents with AI.</p></div>
-            <div className="hero-callout"><span>✦</span><div><strong>From documents to insights — powered by AI</strong><small>Upload. Process. Analyze. Understand.</small></div></div>
+            <div className="view-heading">
+              <p className="eyebrow">DOCUMENT WORKSPACE</p>
+              <h2>Documents</h2>
+              <p className="muted">Manage and track your documents and their processing status.</p>
+            </div>
+            <div className="hero-callout"><span>▣</span><div><strong>Smarter Documents</strong><small>AI-powered insights for your business</small></div></div>
           </div>
           {(error || actionError) && <div className="alert wide">{error || actionError}</div>}
-          <div className="document-command-grid">
-            <div className="calm-upload"><UploadDocument token={token} onUploaded={() => onRefresh()} /></div>
-            <section className="how-card panel"><p className="eyebrow">WORKFLOW</p><h3>How it works?</h3>
-              {[["1","Upload","Select and upload your document"],["2","Process","We extract text using OCR"],["3","Analyze","AI analyzes and extracts key information"],["4","View","View structured data, confidence scores and compliance checks"]].map(([number,title,desc]) => <div className="how-step" key={number}><span>{number}</span><div><strong>{title}</strong><small>{desc}</small></div></div>)}
-            </section>
-          </div>
-          <section className="panel recent-documents-card"><div className="panel-heading"><div><p className="eyebrow">LIVE WORKSPACE</p><h3>Recent documents</h3><p className="muted">Your uploaded documents and their processing status.</p></div><span className="count-pill">{documents.length} total</span></div>
-            {loading ? <div className="empty-state"><span className="spinner" />Loading workspace data...</div> : documents.length === 0 ? <div className="empty-state"><strong>No documents yet</strong><span>Upload a document to start your intelligence workflow.</span></div> : <div className="document-list">{documents.map(doc => <DocumentRow key={doc.id} doc={doc} busy={busy} onAction={run} onView={setSelected} />)}</div>}
+
+          <section className="panel recent-documents-card">
+            <div className="document-workspace-heading">
+              <div>
+                <p className="eyebrow">DOCUMENT WORKSPACE</p>
+                <h3>Recent documents</h3>
+                <p className="muted">Your uploaded documents and their processing status.</p>
+              </div>
+              <span className="count-pill">{documents.length} total</span>
+            </div>
+
+            <div className="document-toolbar">
+              <label className="document-search"><span>⌕</span><input value={documentSearch} onChange={(e) => setDocumentSearch(e.target.value)} placeholder="Search documents..." aria-label="Search documents" /></label>
+              <select value={documentTypeFilter} onChange={(e) => setDocumentTypeFilter(e.target.value)} aria-label="Filter by type">
+                <option value="all">▣ All types</option>
+                {[...new Set(documents.map(d => d.file_type.toLowerCase()))].map(type => <option key={type} value={type}>{type.toUpperCase()}</option>)}
+              </select>
+              <select value={documentStatusFilter} onChange={(e) => setDocumentStatusFilter(e.target.value)} aria-label="Filter by status">
+                <option value="all">⚑ All status</option><option value="completed">Completed</option><option value="processing">Processing</option><option value="pending">Pending</option><option value="uploaded">Uploaded</option><option value="failed">Failed</option>
+              </select>
+              <select value={documentSort} onChange={(e) => setDocumentSort(e.target.value)} aria-label="Sort documents">
+                <option value="newest">↕ Newest first</option><option value="oldest">↕ Oldest first</option>
+              </select>
+            </div>
+
+            {loading ? <div className="empty-state"><span className="spinner" />Loading workspace data...</div> : filteredDocuments.length === 0 ? <div className="empty-state"><strong>No matching documents</strong><span>Try changing your search or filters.</span></div> : <>
+              <div className="document-table-head"><span>Name</span><span>Type</span><span>Size</span><span>Uploaded on</span><span>Status</span><span>Actions</span></div>
+              <div className="document-list">{filteredDocuments.map(doc => <DocumentRow key={doc.id} doc={doc} busy={busy} onAction={run} onView={setSelected} />)}</div>
+            </>}
           </section>
-        </section>}
+        </section>
 
         {view === "processing" && <section className="processing-view"><div className="view-heading"><p className="eyebrow">AI WORKFLOW</p><h2>AI Processing</h2><p className="muted">Track the document intelligence pipeline from ingestion to action.</p></div><section className="pipeline panel"><div><p className="eyebrow">PROCESSING PIPELINE</p><h3>From file to insight</h3></div><div className="pipeline-steps">{["Upload", "Extract", "Analyze", "Validate", "Act"].map((step, index) => <div className="pipeline-step" key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong>{index < 4 && <i />}</div>)}</div><small>{pending} document{pending === 1 ? "" : "s"} ready for processing</small></section></section>}
 
