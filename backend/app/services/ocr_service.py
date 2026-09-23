@@ -42,20 +42,20 @@ def _load_ocr_dependencies():
     return pytesseract, Image
 
 
-def ocr_image(image_path: Path) -> str:
+def ocr_image(image_path: Path, lang: str = "eng") -> str:
     """Extract text from an image file using Tesseract OCR."""
     pytesseract, Image = _load_ocr_dependencies()
 
     try:
         with Image.open(image_path) as image:
             image = image.convert("RGB")
-            return pytesseract.image_to_string(image).strip()
+            return pytesseract.image_to_string(image, lang=lang).strip()
     except Exception as exc:
         logger.exception("OCR failed for image %s", image_path)
         raise OCRError(f"Failed to OCR image: {image_path.name}") from exc
 
 
-def ocr_pdf(pdf_path: Path, dpi: int = 200) -> str:
+def ocr_pdf(pdf_path: Path, dpi: int = 200, lang: str = "eng") -> str:
     """Render PDF pages and OCR them, intended for scanned/image-only PDFs."""
     pytesseract, _ = _load_ocr_dependencies()
 
@@ -70,7 +70,7 @@ def ocr_pdf(pdf_path: Path, dpi: int = 200) -> str:
             for page_number, page in enumerate(pdf, start=1):
                 pixmap = page.get_pixmap(dpi=dpi, alpha=False)
                 image = pixmap.pil_image()
-                text = pytesseract.image_to_string(image).strip()
+                text = pytesseract.image_to_string(image, lang=lang).strip()
                 if text:
                     pages.append(f"[Page {page_number}]\n{text}")
 
