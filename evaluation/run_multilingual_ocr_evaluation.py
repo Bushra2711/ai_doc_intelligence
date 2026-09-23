@@ -97,6 +97,7 @@ def normalize(value: object) -> str:
 def find_font() -> Path:
     candidates = [
         Path(r"C:\Windows\Fonts\Nirmala.ttc"),
+        Path(r"C:\Windows\Fonts\Nirmala.ttc"),
         Path(r"C:\Windows\Fonts\Nirmala.ttf"),
         Path(r"C:\Windows\Fonts\NirmalaUI.ttf"),
         Path(r"C:\Windows\Fonts\mangal.ttf"),
@@ -105,8 +106,8 @@ def find_font() -> Path:
         if path.exists():
             return path
     raise SystemExit(
-        "No Devanagari-capable Windows font found. Expected Nirmala.ttf, "
-        "NirmalaUI.ttf, or mangal.ttf."
+        "No Devanagari-capable Windows font found. Expected Nirmala.ttc, "
+        "Nirmala.ttf, NirmalaUI.ttf, or mangal.ttf."
     )
 
 
