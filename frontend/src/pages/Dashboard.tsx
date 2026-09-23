@@ -86,7 +86,7 @@ export default function Dashboard({ token, documents, loading, error, userName, 
 
     <main className="workspace">
       <header className="topbar">
-        <div><p className="eyebrow">WORKSPACE / {view.toUpperCase()}</p><h1>See you again with DocuMind AI</h1></div>
+        <div className="topbar-search"><span>⌕</span><input aria-label="Search documents" placeholder="Search documents, invoices, vendors..." /><kbd>Ctrl + K</kbd></div>
         <div className="user-chip"><span>{(userName || "U").trim().charAt(0).toUpperCase()}</span><div><strong>{userName || "Workspace user"}</strong><small>Account</small></div><button onClick={onLogout}>Logout</button></div>
       </header>
 
