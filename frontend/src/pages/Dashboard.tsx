@@ -172,28 +172,83 @@ export default function Dashboard({ token, documents, loading, error, userName, 
         </section>}
 
         {view === "processing" && (
-          <section className="processing-view">
-            <div className="view-heading">
-              <p className="eyebrow">AI WORKFLOW</p>
-              <h2>AI Processing</h2>
-              <p className="muted">Track the document intelligence pipeline from ingestion to action.</p>
-            </div>
-            <section className="pipeline panel">
-              <div>
-                <p className="eyebrow">PROCESSING PIPELINE</p>
-                <h3>From file to insight</h3>
+          <section className="processing-view pro-processing">
+            <div className="processing-hero">
+              <div className="view-heading">
+                <p className="eyebrow">AI WORKFLOW</p>
+                <h2>AI Processing</h2>
+                <p className="muted">Track the document intelligence pipeline from ingestion to action.</p>
               </div>
-              <div className="pipeline-steps">
-                {["Upload", "Extract", "Analyze", "Validate", "Act"].map((step, index) => (
-                  <div className="pipeline-step" key={step}>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <strong>{step}</strong>
-                    {index < 4 && <i />}
+              <div className="processing-callout"><span>✦</span><div><strong>Smarter Documents</strong><small>AI-powered document intelligence</small></div></div>
+            </div>
+
+            <section className="processing-pipeline panel">
+              <div className="processing-panel-head">
+                <div>
+                  <p className="eyebrow">PROCESSING PIPELINE</p>
+                  <h3>From file to insight</h3>
+                  <p className="muted">Documents move through extraction, analysis, validation and completion.</p>
+                </div>
+                <span className="live-pill"><i /> {processing} processing</span>
+              </div>
+              <div className="processing-steps">
+                {[
+                  ["01","Upload","File received and stored"],
+                  ["02","OCR / Extract","Extract text and structured data"],
+                  ["03","AI Analyze","Understand content and key information"],
+                  ["04","Validate","Compliance and quality checks"],
+                  ["05","Complete","Ready for your action"],
+                ].map(([num, label, desc], index) => (
+                  <div className={`processing-step ${index === 0 ? "active" : ""}`} key={num}>
+                    <div className="step-circle">{num}</div>
+                    <strong>{label}</strong>
+                    <small>{desc}</small>
                   </div>
                 ))}
               </div>
-              <small>{pending} document{pending === 1 ? "" : "s"} ready for processing</small>
             </section>
+
+            <div className="processing-kpis">
+              <div className="processing-kpi"><span className="kpi-symbol">▣</span><div><small>Documents Processed</small><strong>{completed}</strong><em>Completed successfully</em></div></div>
+              <div className="processing-kpi"><span className="kpi-symbol blue">◉</span><div><small>Currently Processing</small><strong>{processing}</strong><em>Live in pipeline</em></div></div>
+              <div className="processing-kpi"><span className="kpi-symbol green">✓</span><div><small>Successfully Completed</small><strong>{completed}</strong><em>Ready for review</em></div></div>
+              <div className="processing-kpi"><span className="kpi-symbol red">!</span><div><small>Failed / Needs Review</small><strong>{failed}</strong><em>Requires attention</em></div></div>
+            </div>
+
+            <div className="processing-layout">
+              <section className="panel processing-queue">
+                <div className="processing-panel-head queue-head">
+                  <div><p className="eyebrow">LIVE WORKSPACE</p><h3>Processing Queue</h3><p className="muted">Live status of documents in the AI pipeline.</p></div>
+                  <button className="refresh-btn" onClick={onRefresh}>↻ Refresh</button>
+                </div>
+                {loading ? <div className="empty-state"><span className="spinner" />Loading workspace data...</div> : documents.length === 0 ? <div className="empty-state">No documents in the workspace.</div> : (
+                  <div className="processing-list">
+                    {documents.slice(0, 8).map((doc) => {
+                      const stage = doc.status === "completed" ? "Completed" : doc.status === "processing" ? "AI Analyze" : doc.status === "failed" ? "Validate" : "OCR / Extract";
+                      const statusLabel = doc.status === "uploaded" || doc.status === "pending" ? "Queued" : doc.status.charAt(0).toUpperCase() + doc.status.slice(1);
+                      return <div className="processing-row" key={doc.id}>
+                        <div className="processing-file"><span className="processing-file-icon">{doc.file_type.includes("pdf") ? "PDF" : doc.file_type.includes("word") ? "DOC" : "IMG"}</span><div><strong title={doc.filename}>{doc.filename}</strong><small>{doc.file_type.toUpperCase()}</small></div></div>
+                        <span className="queue-stage">{stage}</span>
+                        <span className={`queue-status ${doc.status}`}>{statusLabel}</span>
+                        <span className="queue-time">—</span>
+                        <button className="queue-view" onClick={() => setSelected(doc)}>View</button>
+                      </div>;
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <aside className="panel processing-summary">
+                <p className="eyebrow">AI INSIGHTS</p>
+                <h3>AI Processing Summary</h3>
+                <p className="muted">Key metrics from your document workspace.</p>
+                <div className="summary-item"><span className="summary-icon blue">▤</span><div><strong>Document Extraction</strong><small>{overviewMetrics?.analyzed_documents ?? completed} analyzed documents</small></div></div>
+                <div className="summary-item"><span className="summary-icon green">▣</span><div><strong>Data Analysis</strong><small>{overviewMetrics?.invoice_documents ?? 0} invoice documents</small></div></div>
+                <div className="summary-item"><span className="summary-icon purple">◇</span><div><strong>Compliance Validation</strong><small>{overviewMetrics?.compliance_passed ?? 0} checks passed · {overviewMetrics?.compliance_failed ?? 0} failed</small></div></div>
+                <div className="summary-item"><span className="summary-icon orange">▥</span><div><strong>Confidence Scoring</strong><small>{overviewMetrics?.average_invoice_confidence != null ? `${Math.round(overviewMetrics.average_invoice_confidence * 100)}% average confidence` : "No confidence data yet"}</small></div></div>
+                <div className="health-card"><span>✓</span><div><strong>System Operational</strong><small>Document intelligence services are available.</small></div></div>
+              </aside>
+            </div>
           </section>
         )}
 
