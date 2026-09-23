@@ -167,8 +167,9 @@ export default function Dashboard({ token, documents, loading, error, userName, 
                   ))}
                 </div>
               </>
-            )}          </section>
-        </section>
+            )}
+          </section>
+        </section>}
 
         {view === "processing" && (
           <section className="processing-view">
