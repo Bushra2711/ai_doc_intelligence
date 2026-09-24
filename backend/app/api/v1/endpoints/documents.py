@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -56,7 +56,7 @@ async def upload_document(file: UploadFile = File(...), ingestion_source: Litera
 
 
 @router.post("/batch-upload", response_model=list[DocumentResponse], status_code=status.HTTP_201_CREATED)
-async def batch_upload_documents(files: list[UploadFile] = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[DocumentResponse]:
+async def batch_upload_documents(files: Annotated[list[UploadFile], File(description="Multiple supported documents")], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[DocumentResponse]:
     """Ingest multiple documents in one authenticated batch request."""
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
