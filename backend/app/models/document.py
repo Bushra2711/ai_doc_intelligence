@@ -38,6 +38,7 @@ class Document(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ingestion_source: Mapped[str] = mapped_column(String(32), nullable=False, default="portal", server_default="portal", index=True)
     status: Mapped[DocumentStatus] = mapped_column(
         Enum(DocumentStatus, name="document_status", native_enum=True),
         nullable=False,
