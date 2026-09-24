@@ -6,7 +6,7 @@ A native Power BI Desktop dashboard was created from the consolidated BI-ready d
 
 - Artifact: `AI_Document_Intelligence_Evaluation_Dashboard.pbix`
 - Tool: Microsoft Power BI Desktop
-- Source dataset: `evaluation/results/powerbi_dashboard_data.csv`
+- Source dataset: `evaluation/powerbi_dashboard_data.csv`
 - Dashboard title: **AI-Powered Intelligent Document Processing — Evaluation Dashboard**
 
 The dashboard contains KPI and evaluation visuals for:
