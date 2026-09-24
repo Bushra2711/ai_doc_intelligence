@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -35,7 +36,7 @@ UPLOAD_DIRECTORY = Path(__file__).resolve().parents[4] / "uploads"
 
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-async def upload_document(file: UploadFile = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> DocumentResponse:
+async def upload_document(file: UploadFile = File(...), ingestion_source: Literal["portal", "api"] = "portal", current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> DocumentResponse:
     try:
         ingested = await ingest_upload(file, UPLOAD_DIRECTORY)
     except (UnsupportedFileTypeError, InvalidFileError) as exc:
@@ -44,7 +45,7 @@ async def upload_document(file: UploadFile = File(...), current_user: User = Dep
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)) from exc
     except DocumentIngestionError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
-    document = Document(user_id=current_user.id, filename=ingested.original_filename, file_path=ingested.relative_path, file_type=ingested.content_type, file_size=ingested.file_size, status=DocumentStatus.UPLOADED)
+    document = Document(user_id=current_user.id, filename=ingested.original_filename, file_path=ingested.relative_path, file_type=ingested.content_type, file_size=ingested.file_size, ingestion_source=ingestion_source, status=DocumentStatus.UPLOADED)
     stored_path = UPLOAD_DIRECTORY / ingested.stored_filename
     try:
         db.add(document); db.commit(); db.refresh(document)
@@ -52,6 +53,61 @@ async def upload_document(file: UploadFile = File(...), current_user: User = Dep
         db.rollback(); stored_path.unlink(missing_ok=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to save uploaded document metadata") from exc
     return DocumentResponse.model_validate(document)
+
+
+@router.post("/batch-upload", response_model=list[DocumentResponse], status_code=status.HTTP_201_CREATED)
+async def batch_upload_documents(files: list[UploadFile] = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[DocumentResponse]:
+    """Ingest multiple documents in one authenticated batch request."""
+    if not files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
+    if len(files) > 50:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A batch may contain at most 50 files")
+
+    ingested_files = []
+    stored_paths: list[Path] = []
+    try:
+        for file in files:
+            ingested = await ingest_upload(file, UPLOAD_DIRECTORY)
+            ingested_files.append(ingested)
+            stored_paths.append(UPLOAD_DIRECTORY / ingested.stored_filename)
+
+        documents = [
+            Document(
+                user_id=current_user.id,
+                filename=ingested.original_filename,
+                file_path=ingested.relative_path,
+                file_type=ingested.content_type,
+                file_size=ingested.file_size,
+                ingestion_source="batch",
+                status=DocumentStatus.UPLOADED,
+            )
+            for ingested in ingested_files
+        ]
+        db.add_all(documents)
+        db.commit()
+        for document in documents:
+            db.refresh(document)
+        return [DocumentResponse.model_validate(document) for document in documents]
+    except (UnsupportedFileTypeError, InvalidFileError) as exc:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FileTooLargeError as exc:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)) from exc
+    except DocumentIngestionError as exc:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+    except SQLAlchemyError as exc:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to save batch document metadata") from exc
 
 
 @router.get("", response_model=list[DocumentResponse])
