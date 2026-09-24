@@ -28,7 +28,7 @@
 - Compliance evaluation: 450 PASS, 0 WARNING, 50 FAIL; all failures recorded as buyer_gstin_format on synthetic test identifiers.
 - Backend regression test execution: 20/20 passed with no pytest configuration warnings.
 - Domain adaptation for the invoice domain, implemented as versioned schema/rule adaptation rather than model-weight fine-tuning; see `docs/28-domain-adaptation.md`.
-- SHAP explainability for the deterministic invoice-validation surrogate layer; see `docs/27?`.
+- SHAP explainability for the deterministic invoice-validation surrogate layer; see `docs/26-explainability-shap-lime.md`.
 - Drift monitoring and automated retraining-trigger evaluation with MLflow tracking; see `docs/27-mlops-drift-and-retraining.md`.
 - Multi-source ingestion runtime evidence for Portal, API, and Batch uploads, with `ingestion_source` persisted as document metadata; see `docs/29-multi-source-ingestion.md`.
 
