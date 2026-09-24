@@ -26,6 +26,7 @@ class DocumentResponse(DocumentSchemaBase):
     file_path: str
     file_type: str
     file_size: int
+    ingestion_source: str
     status: DocumentStatus
     created_at: datetime
     updated_at: datetime
