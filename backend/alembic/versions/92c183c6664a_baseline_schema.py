@@ -139,7 +139,6 @@ def upgrade() -> None:
         sa.Column("issue_date", sa.String(length=50), nullable=True),
         sa.Column("certificate_number", sa.String(length=100), nullable=True),
         sa.Column("gst", sa.String(length=100), nullable=True),
-        sa.Column("compliance_alerts", sa.Text(), nullable=False, server_default="[]"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["document_id"], ["documents.id"], ondelete="CASCADE"),
