@@ -26,6 +26,7 @@ def upgrade() -> None:
         "EMPLOYEE",
         "AUDITOR",
         name="user_role",
+        create_type=False,
     )
     document_status = sa.Enum(
         "PENDING",
@@ -34,6 +35,7 @@ def upgrade() -> None:
         "COMPLETED",
         "FAILED",
         name="document_status",
+        create_type=False,
     )
 
     bind = op.get_bind()
