@@ -189,14 +189,21 @@ unless one of the supported field sets clearly applies.
                     _LAST_GEMINI_REQUEST_AT = time.monotonic()
                     last_error = exc
 
-                    # 429 means the current model is rate-limited. Do not spend
-                    # another 2/4/8 seconds retrying a model that is already known
-                    # to be throttled; immediately fall through to the next model.
-                    # This keeps interactive analysis responsive and makes the
-                    # Flash-Lite fallback effective during bulk invoice evaluation.
                     status_code = getattr(exc, "status_code", None)
-                    if status_code == 429 or "429" in str(exc):
-                        break
+                    error_text = str(exc)
+
+                    # Gemini can temporarily return 429 (rate limit) or 503
+                    # (service unavailable). Back off before retrying instead of
+                    # failing immediately. This is especially important when
+                    # several invoices are analyzed one after another.
+                    is_rate_limited = status_code == 429 or "429" in error_text
+                    is_unavailable = status_code == 503 or "503" in error_text
+
+                    if is_rate_limited or is_unavailable:
+                        if attempt < 2:
+                            backoff_seconds = 10 * (2 ** attempt)
+                            time.sleep(backoff_seconds)
+                            continue
                     break
 
             if response is not None:
