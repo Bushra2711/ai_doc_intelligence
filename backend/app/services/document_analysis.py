@@ -199,11 +199,10 @@ unless one of the supported field sets clearly applies.
                     is_rate_limited = status_code == 429 or "429" in error_text
                     is_unavailable = status_code == 503 or "503" in error_text
 
-                    if is_rate_limited or is_unavailable:
-                        if attempt < 2:
-                            backoff_seconds = 10 * (2 ** attempt)
-                            time.sleep(backoff_seconds)
-                            continue
+                    if (is_rate_limited or is_unavailable) and attempt < 2:
+                        backoff_seconds = 10 * (2 ** attempt)
+                        time.sleep(backoff_seconds)
+                        continue
                     break
 
             if response is not None:
