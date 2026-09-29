@@ -10,6 +10,8 @@ function UploadDocument({ token, onUploaded }: UploadDocumentProps) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [stage, setStage] = useState<"upload" | "process" | "analyze" | "view">("upload");
+  const processDone = stage === "analyze" || stage === "view";
+  const analyzeDone = stage === "view";
   const inputRef = useRef<HTMLInputElement>(null);
 
   function choose(next: File | undefined) {
@@ -59,9 +61,9 @@ function UploadDocument({ token, onUploaded }: UploadDocumentProps) {
         <button type="button" onClick={uploadDocument} disabled={!file || loading || !!uploadedDocument} className="primary-button upload-button">{loading ? "Uploading..." : uploadedDocument ? "Uploaded" : "Upload Document"}</button>
       </div>
       <div className="document-action-steps workflow-steps" aria-label="Document workflow steps">
-        <button type="button" className={stage === "process" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "process"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:process", { detail: uploadedDocument.id })); }}>2. Process</button>
-        <button type="button" className={stage === "analyze" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "analyze"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:analyze", { detail: uploadedDocument.id })); }}>3. Analyze</button>
-        <button type="button" className={stage === "view" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "view"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:view", { detail: uploadedDocument.id })); }}>4. View</button>
+        <button type="button" className={processDone ? "completed-step" : stage === "process" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "process"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:process", { detail: uploadedDocument.id })); }}>{processDone ? "✓ Processed" : "2. Process"}</button>
+        <button type="button" className={analyzeDone ? "completed-step" : stage === "analyze" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "analyze"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:analyze", { detail: uploadedDocument.id })); }}>{analyzeDone ? "✓ Analyzed" : "3. Analyze"}</button>
+        <button type="button" className={stage === "view" ? "active-step" : ""} disabled={!uploadedDocument || stage !== "view"} onClick={() => { if (uploadedDocument) window.dispatchEvent(new CustomEvent("documind:view", { detail: uploadedDocument.id })); }}>4. View Results</button>
       </div>
       <small className="upload-help">Supported formats: PDF, DOCX, JPG, PNG, GIF, WEBP&nbsp; | &nbsp;Max size: 10 MB</small>
       {message && <p className="upload-success">{message}</p>}
