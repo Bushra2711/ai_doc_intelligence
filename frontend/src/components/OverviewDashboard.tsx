@@ -19,6 +19,8 @@ type Props = {
 export default function OverviewDashboard({ token, userName, documents, metrics, completed, processing, failed, error, onRefresh, onView, actionBusy }: Props) {
   const [recent, setRecent] = useState<DocumentRecord[]>(documents.slice(0, 5));
   const [workflowStage, setWorkflowStage] = useState<Record<string, "process" | "analyze" | "view">>({});
+  const [workspaceSearch, setWorkspaceSearch] = useState("");
+  const [workspaceStatus, setWorkspaceStatus] = useState<"all" | DocumentRecord["status"]>("all");
 
   useEffect(() => setRecent(documents.slice(0, 5)), [documents]);
   useEffect(() => {
@@ -34,6 +36,11 @@ export default function OverviewDashboard({ token, userName, documents, metrics,
   const totalTypes = typeEntries.reduce((sum, item) => sum + item[1], 0) || documents.length || 1;
   const invoiceOnly = !!metrics && metrics.invoice_documents === documents.length && documents.length > 0;
   const confidence = metrics?.average_invoice_confidence == null ? "—" : Math.round(metrics.average_invoice_confidence * 100) + "%";
+  const filteredRecent = recent.filter((doc) => {
+    const matchesSearch = doc.filename.toLowerCase().includes(workspaceSearch.toLowerCase().trim());
+    const matchesStatus = workspaceStatus === "all" || doc.status === workspaceStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   const donut = typeEntries.length
     ? typeEntries.map((item, index) => {
@@ -121,18 +128,33 @@ export default function OverviewDashboard({ token, userName, documents, metrics,
 
     <section className="overview-bottom-grid">
       <div className="overview-panel recent-panel">
-        <div className="overview-panel-head">
-          <div><span className="mini-label">LIVE WORKSPACE</span><h3>Recent Documents</h3><p>Your latest files and processing status.</p></div>
-          <button onClick={openDocuments}>View All →</button>
+        <div className="overview-panel-head workspace-head">
+          <div><span className="mini-label">LIVE WORKSPACE</span><h3>Recent Documents</h3><p>Track and manage your documents in real-time.</p></div>
+          <div className="workspace-tools">
+            <input value={workspaceSearch} onChange={(event) => setWorkspaceSearch(event.target.value)} placeholder="Search documents..." aria-label="Search documents" />
+            <select value={workspaceStatus} onChange={(event) => setWorkspaceStatus(event.target.value as "all" | DocumentRecord["status"])} aria-label="Filter document status">
+              <option value="all">All Status</option>
+              <option value="uploaded">Uploaded</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option>
+            </select>
+            <button className="workspace-refresh" onClick={onRefresh} aria-label="Refresh documents" title="Refresh">↻</button>
+          </div>
         </div>
-        {recent.length === 0 ? <div className="overview-empty">No documents yet. Upload your first document to begin.</div> : <div className="overview-table">
-          <div className="overview-table-head"><span>#</span><span>Document Name</span><span>Type</span><span>Size</span><span>Status</span><span>Confidence</span><span>Actions</span></div>
-          {recent.map((doc, index) => <div className="overview-table-row" key={doc.id}>
-            <span>{index + 1}</span><strong title={doc.filename}>{doc.filename}</strong><span>{invoiceOnly ? "Invoice" : "Document"}</span><span>{formatBytes(doc.file_size)}</span>
-            <span className={"overview-status " + doc.status}>● {doc.status === "completed" ? "Completed" : doc.status}</span>
-            <span>{doc.status === "completed" ? confidence : "—"}</span><button onClick={() => onView(doc)}>◉&nbsp; View</button>
-          </div>)}
-        </div>}
+        {recent.length === 0 ? <div className="overview-empty">No documents yet. Upload your first document to begin.</div> : filteredRecent.length === 0 ? <div className="overview-empty">No documents match your search or status filter.</div> : <div className="overview-table">
+          <div className="overview-table-head workspace-grid"><span>#</span><span>Document Name</span><span>Size</span><span>Status</span><span>Process</span><span>Analyze</span><span>View</span><span>Confidence</span><span>Actions</span></div>
+          {filteredRecent.map((doc, index) => {
+            const stage = workflowStage[doc.id];
+            const processDone = doc.status === "completed" || stage === "analyze" || stage === "view";
+            const analyzeDone = stage === "view";
+            return <div className="overview-table-row workspace-grid" key={doc.id}>
+              <span>{index + 1}</span><strong title={doc.filename}>{doc.filename}</strong><span>{formatBytes(doc.file_size)}</span>
+              <span className={"overview-status " + doc.status}>● {doc.status === "completed" ? "Completed" : doc.status}</span>
+              <span className={"workspace-step " + (processDone ? "done" : doc.status === "processing" ? "active" : "")}>{processDone ? "✓ 100%" : doc.status === "processing" ? "◌ Running" : "—"}</span>
+              <span className={"workspace-step " + (analyzeDone ? "done" : "")}>{analyzeDone ? "✓ Done" : doc.status === "completed" ? "Ready" : "—"}</span>
+              <span className={"workspace-view " + (analyzeDone ? "ready" : "")}>{analyzeDone ? "✓ Ready" : "—"}</span>
+              <span>{doc.status === "completed" ? confidence : "—"}</span><button onClick={() => onView(doc)}>◉&nbsp; View</button>
+            </div>;
+          })}
+        </div>
       </div>
 
       <div className="overview-panel distribution-panel">
