@@ -135,9 +135,6 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
             for label in labels
         )
         following_line = lines[index + 2] if index + 2 < len(lines) else ""
-        next_is_tax_label = bool(
-            re.match(r"^(?:CGST|SGST|IGST|UTGST|GST|Total Tax)\b", next_line, flags=re.IGNORECASE)
-        )
         following_is_tax_label = bool(
             re.match(r"^(?:CGST|SGST|IGST|UTGST|GST|Total Tax)\b", following_line, flags=re.IGNORECASE)
         )
