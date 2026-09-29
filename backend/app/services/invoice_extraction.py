@@ -126,14 +126,24 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
             flags=re.IGNORECASE,
         )
 
-        if previous_match and re.match(
-            r"^(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)\s*",
-            previous_line,
-            flags=re.IGNORECASE,
-        ):
+        # OCR invoices can place a document-level subtotal immediately before
+        # the label, followed by the first tax row. In that specific context
+        # the preceding amount belongs to the subtotal; otherwise prefer the
+        # amount immediately after the label.
+        is_subtotal_label = any(
+            label.lower() in {"subtotal", "taxable subtotal", "sub total", "taxable value", "net amount"}
+            for label in labels
+        )
+        next_is_tax_label = bool(
+            re.match(r"^(?:CGST|SGST|IGST|UTGST|GST|Total Tax)\b", next_line, flags=re.IGNORECASE)
+        )
+
+        if is_subtotal_label and previous_match and next_is_tax_label:
             return _parse_amount(previous_match.group(1))
         if next_match:
             return _parse_amount(next_match.group(1))
+        if previous_match:
+            return _parse_amount(previous_match.group(1))
 
     # Fallback for OCR layouts where amount appears before its label.
     for index, line in enumerate(lines[:-1]):
@@ -186,9 +196,13 @@ def _infer_vendor_name(text: str) -> str | None:
     """Infer a seller name when the invoice has no explicit Vendor/Seller label."""
     generic = re.compile(r"^(invoice|tax invoice|bill|receipt|gst invoice|from|to|bill to|ship to)$", re.IGNORECASE)
     page_marker = re.compile(r"^\[\s*page\s+\d+\s*\]$", re.IGNORECASE)
+    amount_only = re.compile(
+        r"^(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*[0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?\s*$",
+        re.IGNORECASE,
+    )
     for line in text.splitlines():
         value = _clean(line)
-        if not value or generic.fullmatch(value) or page_marker.fullmatch(value) or re.search(r"synthetic\s+test\s+data|not\s+a\s+real\s+tax\s+invoice", value, re.IGNORECASE):
+        if not value or generic.fullmatch(value) or page_marker.fullmatch(value) or amount_only.fullmatch(value) or re.search(r"synthetic\s+test\s+data|not\s+a\s+real\s+tax\s+invoice", value, re.IGNORECASE):
             continue
         if GSTIN_PATTERN.search(value) or re.search(r"\b(?:invoice\s*(?:no|number|date)|gstin|bill\s*to|ship\s*to|subtotal|total|order\s*(?:no|number))\b", value, re.IGNORECASE):
             continue
