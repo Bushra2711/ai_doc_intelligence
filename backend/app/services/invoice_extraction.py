@@ -134,11 +134,21 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
             label.lower() in {"subtotal", "taxable subtotal", "sub total", "taxable value", "net amount"}
             for label in labels
         )
+        following_line = lines[index + 2] if index + 2 < len(lines) else ""
         next_is_tax_label = bool(
             re.match(r"^(?:CGST|SGST|IGST|UTGST|GST|Total Tax)\b", next_line, flags=re.IGNORECASE)
         )
+        following_is_tax_label = bool(
+            re.match(r"^(?:CGST|SGST|IGST|UTGST|GST|Total Tax)\b", following_line, flags=re.IGNORECASE)
+        )
 
-        if is_subtotal_label and previous_match and next_is_tax_label:
+        # In the stacked GST fixture, the subtotal is the amount immediately
+        # before the label, while the amount immediately after the label is
+        # the first tax component:
+        # I 89,500.00 / Subtotal / I 5,370.00 / CGST (6%)
+        # Only use that special rule when both amounts exist and the following
+        # line confirms that the next amount starts a tax row.
+        if is_subtotal_label and previous_match and next_match and following_is_tax_label:
             return _parse_amount(previous_match.group(1))
         if next_match:
             return _parse_amount(next_match.group(1))
