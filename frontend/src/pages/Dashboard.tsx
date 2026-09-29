@@ -117,6 +117,7 @@ export default function Dashboard({ token, documents, loading, error, userName, 
           error={error || actionError}
           onRefresh={onRefresh}
           onView={setSelected}
+          actionBusy={busy.startsWith("process-")}
         />}
 
         {view === "documents" && <section className="documents-view modern-documents">
