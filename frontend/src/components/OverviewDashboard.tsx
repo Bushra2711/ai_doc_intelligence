@@ -18,8 +18,17 @@ type Props = {
 
 export default function OverviewDashboard({ token, userName, documents, metrics, completed, processing, failed, error, onRefresh, onView, actionBusy }: Props) {
   const [recent, setRecent] = useState<DocumentRecord[]>(documents.slice(0, 5));
+  const [workflowStage, setWorkflowStage] = useState<Record<string, "process" | "analyze" | "view">>({});
 
   useEffect(() => setRecent(documents.slice(0, 5)), [documents]);
+  useEffect(() => {
+    const handleWorkflow = (event: Event) => {
+      const detail = (event as CustomEvent<{ id: string; stage: "process" | "analyze" | "view" }>).detail;
+      if (detail?.id && detail?.stage) setWorkflowStage((current) => ({ ...current, [detail.id]: detail.stage }));
+    };
+    window.addEventListener("documind:workflow", handleWorkflow);
+    return () => window.removeEventListener("documind:workflow", handleWorkflow);
+  }, []);
 
   const typeEntries = Object.entries(metrics?.document_types || {}).sort((a, b) => b[1] - a[1]);
   const totalTypes = typeEntries.reduce((sum, item) => sum + item[1], 0) || documents.length || 1;
@@ -78,16 +87,29 @@ export default function OverviewDashboard({ token, userName, documents, metrics,
       <div className="overview-workflow">
         <div className="overview-section-title"><span className="section-icon">✣</span><div><h3>Document Processing Workflow</h3><small>Move from upload to validated results.</small></div></div>
         <div className="workflow-line">
-          {[["↥","Upload","Add document"],["⚙","Process","Run OCR"],["▣","Analyze","Extract data"],["✓","Validate","Check compliance"],["◉","View","Results & Report"]].map(([icon,title,desc], index) =>
-            <div className={"workflow-node " + (index === 0 ? "done" : index === 1 && processing ? "active" : "")} key={title}>
-              <span>{icon}</span><strong>{title}</strong><small>{desc}</small>{index < 4 && <i>→</i>}
-            </div>
-          )}
+          {(() => {
+            const current = recent[0];
+            const stage = current ? workflowStage[current.id] : undefined;
+            const processDone = !!current && (stage === "analyze" || stage === "view");
+            const analyzeDone = !!current && stage === "view";
+            const steps = [
+              ["↥","Upload","Document uploaded",true,false],
+              ["⚙","Process","OCR & extraction",processDone,stage === "process" || processing > 0],
+              ["▣","Analyze","AI analysis completed",analyzeDone,stage === "analyze"],
+              ["✓","Validate","Compliance checks",analyzeDone,analyzeDone],
+              ["◉","View Results","Results & report",analyzeDone,stage === "view"],
+            ] as const;
+            return steps.map(([icon,title,desc,done,active], index) =>
+              <div className={"workflow-node " + (done ? "done" : active ? "active" : "")} key={title}>
+                <span>{done ? "✓" : icon}</span><strong>{title}</strong><small>{desc}</small>{index < steps.length - 1 && <i>→</i>}
+              </div>
+            );
+          })()}
         </div>
         <div className="workflow-buttons">
           <button className="workflow-btn blue" disabled={!recent.length || (recent[0].status !== "uploaded" && recent[0].status !== "pending" && recent[0].status !== "failed")} onClick={() => workflow("process")}>▷&nbsp; Process</button>
-          <button className="workflow-btn purple" disabled={!recent.length || recent[0].status !== "completed"} onClick={() => workflow("analyze")}>▥&nbsp; Analyze</button>
-          <button className="workflow-btn muted-btn" disabled={!recent.length} onClick={() => workflow("view")}>◉&nbsp; View Results</button>
+          <button className="workflow-btn purple" disabled={!recent.length || recent[0].status !== "completed" || workflowStage[recent[0].id] === "view"} onClick={() => workflow("analyze")}>{workflowStage[recent[0]?.id] === "view" ? "✓ Analyzed" : "▥ Analyze"}</button>
+          <button className="workflow-btn muted-btn" disabled={!recent.length || workflowStage[recent[0]?.id] !== "view"} onClick={() => workflow("view")}>◉&nbsp; View Results</button>
         </div>
         <div className={"workflow-progress " + (actionBusy || processing > 0 ? "active" : "")} aria-live="polite">
           <span className="workflow-progress-dot" />
