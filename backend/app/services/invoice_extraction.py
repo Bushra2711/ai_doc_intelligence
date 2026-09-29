@@ -98,26 +98,42 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
 
     lines = [line.strip() for line in text.splitlines()]
 
-    # Prefer label -> following amount for OCR layouts used by synthetic
-    # invoices in this project:
-    # Taxable Subtotal
-    # I 42,450.00
-    # Total Tax
-    # I 2,122.50
-    # Invoice Total
-    # I 44,572.50
-    # Checking amount -> label first can steal the amount from the previous
-    # invoice row and shift every numeric field by one row.
+    # Handle both OCR stacking directions. When a label has an amount on
+    # both sides, prefer a preceding currency-marked amount because some OCR
+    # invoices place the document-level amount immediately before the label:
+    # I 89,500.00
+    # Subtotal
+    # I 5,370.00
     for index, line in enumerate(lines[:-1]):
-        if re.fullmatch(rf"(?:{label_pattern})[:=\-]?", line, flags=re.IGNORECASE):
-            match = re.search(
-                r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
-                r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
-                lines[index + 1],
-                flags=re.IGNORECASE,
-            )
-            if match:
-                return _parse_amount(match.group(1))
+        if not line:
+            continue
+        if not re.fullmatch(rf"(?:{label_pattern})[:=\-]?", line, flags=re.IGNORECASE):
+            continue
+
+        previous_line = lines[index - 1] if index > 0 else ""
+        next_line = lines[index + 1]
+
+        previous_match = re.search(
+            r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)\s*"
+            r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
+            previous_line,
+            flags=re.IGNORECASE,
+        )
+        next_match = re.search(
+            r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
+            r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
+            next_line,
+            flags=re.IGNORECASE,
+        )
+
+        if previous_match and re.match(
+            r"^(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)\s*",
+            previous_line,
+            flags=re.IGNORECASE,
+        ):
+            return _parse_amount(previous_match.group(1))
+        if next_match:
+            return _parse_amount(next_match.group(1))
 
     # Fallback for OCR layouts where amount appears before its label.
     for index, line in enumerate(lines[:-1]):
@@ -406,7 +422,7 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     po_number = _first_group(normalized_text, (
         r"(?:purchase\s*order|order|po)\s*(?:no|number|#)\.?\s*[:=-]?\s*(PO[-\w]+)",
     ))
-    subtotal = _extract_labeled_amount(normalized_text, ("subtotal", "sub total", "taxable value", "net amount"))
+    subtotal = _extract_labeled_amount(normalized_text, ("subtotal", "taxable subtotal", "sub total", "taxable value", "net amount"))
     taxes = _extract_tax_breakdown(normalized_text)
 
     # Prefer the sum of extracted GST rows when an explicit tax label is
