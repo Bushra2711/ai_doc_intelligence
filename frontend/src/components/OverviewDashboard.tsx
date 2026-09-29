@@ -13,9 +13,10 @@ type Props = {
   error: string;
   onRefresh: () => void;
   onView: (doc: DocumentRecord) => void;
+  actionBusy: boolean;
 };
 
-export default function OverviewDashboard({ token, userName, documents, metrics, completed, processing, failed, error, onRefresh, onView }: Props) {
+export default function OverviewDashboard({ token, userName, documents, metrics, completed, processing, failed, error, onRefresh, onView, actionBusy }: Props) {
   const [recent, setRecent] = useState<DocumentRecord[]>(documents.slice(0, 5));
 
   useEffect(() => setRecent(documents.slice(0, 5)), [documents]);
@@ -87,6 +88,11 @@ export default function OverviewDashboard({ token, userName, documents, metrics,
           <button className="workflow-btn blue" disabled={!recent.length || (recent[0].status !== "uploaded" && recent[0].status !== "pending" && recent[0].status !== "failed")} onClick={() => workflow("process")}>▷&nbsp; Process</button>
           <button className="workflow-btn purple" disabled={!recent.length || recent[0].status !== "completed"} onClick={() => workflow("analyze")}>▥&nbsp; Analyze</button>
           <button className="workflow-btn muted-btn" disabled={!recent.length} onClick={() => workflow("view")}>◉&nbsp; View Results</button>
+        </div>
+        <div className={"workflow-progress " + (actionBusy || processing > 0 ? "active" : "")} aria-live="polite">
+          <span className="workflow-progress-dot" />
+          <strong>{actionBusy ? "Processing document..." : processing > 0 ? `${processing} document${processing === 1 ? "" : "s"} processing` : "No documents currently processing"}</strong>
+          <small>{completed} of {documents.length} document{documents.length === 1 ? "" : "s"} completed</small>
         </div>
       </div>
     </section>
