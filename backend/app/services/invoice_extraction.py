@@ -96,8 +96,30 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
         if match:
             return _parse_amount(match.group(1))
 
-    # OCR-stacked form: amount on one line, label on the next.
     lines = [line.strip() for line in text.splitlines()]
+
+    # Prefer label -> following amount for OCR layouts used by synthetic
+    # invoices in this project:
+    # Taxable Subtotal
+    # I 42,450.00
+    # Total Tax
+    # I 2,122.50
+    # Invoice Total
+    # I 44,572.50
+    # Checking amount -> label first can steal the amount from the previous
+    # invoice row and shift every numeric field by one row.
+    for index, line in enumerate(lines[:-1]):
+        if re.fullmatch(rf"(?:{label_pattern})[:=\-]?", line, flags=re.IGNORECASE):
+            match = re.search(
+                r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
+                r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
+                lines[index + 1],
+                flags=re.IGNORECASE,
+            )
+            if match:
+                return _parse_amount(match.group(1))
+
+    # Fallback for OCR layouts where amount appears before its label.
     for index, line in enumerate(lines[:-1]):
         if not line:
             continue
@@ -107,21 +129,6 @@ def _extract_labeled_amount(text: str, labels: tuple[str, ...]) -> float | None:
                 r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
                 r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
                 line,
-                flags=re.IGNORECASE,
-            )
-            if match:
-                return _parse_amount(match.group(1))
-
-    # Reverse-stacked form: label on one line, amount on the next.
-    # Only use this when the label itself appears standalone. This prevents
-    # a broad label such as "total" from matching "Total Tax" / "Grand Total"
-    # and stealing the adjacent tax amount.
-    for index, line in enumerate(lines[:-1]):
-        if re.fullmatch(rf"(?:{label_pattern})[:=\-]?", line, flags=re.IGNORECASE):
-            match = re.search(
-                r"(?:INR|Rs\.?|₹|USD|EUR|\$|€|I|l)?\s*"
-                r"([0-9][0-9,]*(?:\.[ \t]*[0-9]{1,2})?)\s*$",
-                lines[index + 1],
                 flags=re.IGNORECASE,
             )
             if match:
