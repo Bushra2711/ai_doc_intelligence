@@ -552,6 +552,7 @@ html[data-dashboard-view="overview"] .hero-row .muted{max-width:680px!important}
 .workflow-steps{width:100%!important;grid-template-columns:repeat(3,1fr)!important;gap:8px!important}
 .workflow-steps button{position:relative;min-height:42px!important;border-radius:10px!important;font-weight:700!important}
 .workflow-steps button:disabled{opacity:.5!important;background:#f0f3f2!important;color:#8b9993!important;border-color:#e0e7e4!important}
+.workflow-steps button.completed-step{opacity:1!important;background:#e9fbf4!important;color:#11845d!important;border-color:#73d6b0!important;box-shadow:none!important}
 .workflow-steps button.active-step{opacity:1!important;background:linear-gradient(135deg,#1aae78,#0f8f63)!important;color:#fff!important;border-color:#15966a!important;box-shadow:0 7px 16px rgba(21,150,106,.18)!important}
 .how-card{padding:24px!important;border-radius:18px!important}
 .how-card h3{font-size:20px!important;margin:5px 0 18px!important}
