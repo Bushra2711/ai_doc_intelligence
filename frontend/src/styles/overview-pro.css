@@ -93,6 +93,31 @@ html[data-dashboard-view="overview"] .workflow-node strong { display:block; colo
 html[data-dashboard-view="overview"] .workflow-node small { display:block; color:#8799aa !important; font-size:9px !important; margin-top:3px; }
 html[data-dashboard-view="overview"] .workflow-node i { position:absolute; right:-9px; top:18px; color:#b3c1cc; font-style:normal; font-size:16px; }
 html[data-dashboard-view="overview"] .workflow-buttons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+html[data-dashboard-view="overview"] .workflow-progress {
+  margin-top:10px;
+  padding:9px 12px;
+  border:1px solid #dfe8f0;
+  border-radius:9px;
+  background:#f8fbfd;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+}
+html[data-dashboard-view="overview"] .workflow-progress-dot {
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#9aa9b5;
+  flex:0 0 auto;
+}
+html[data-dashboard-view="overview"] .workflow-progress.active .workflow-progress-dot {
+  background:#258cf4;
+  box-shadow:0 0 0 4px rgba(37,140,244,.12);
+}
+html[data-dashboard-view="overview"] .workflow-progress strong { color:#17324d; }
+html[data-dashboard-view="overview"] .workflow-progress small { margin-left:auto; color:#71808d; }
+
 html[data-dashboard-view="overview"] .workflow-btn { min-height:38px; border:0; border-radius:9px; font-weight:700; font-size:11px; transition:.16s ease; }
 html[data-dashboard-view="overview"] .workflow-btn:not(:disabled):hover { transform:translateY(-1px); }
 html[data-dashboard-view="overview"] .workflow-btn.blue { color:#fff; background:#258cf4; box-shadow:0 6px 15px rgba(37,140,244,.17); }
