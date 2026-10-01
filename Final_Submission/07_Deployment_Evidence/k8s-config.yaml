@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: documind-config
+  namespace: documind
+data:
+  POSTGRES_DB: documind
+  POSTGRES_USER: documind
+  DATABASE_URL: postgresql+psycopg://documind:documind_password@postgres:5432/documind
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: documind-secrets
+  namespace: documind
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: documind_password
+  JWT_SECRET_KEY: local-kubernetes-change-this-secret
