@@ -35,3 +35,8 @@ evaluation_backup/
 
 # Runtime MLOps trigger artifacts
 mlops/*.json
+
+# Local/generated files
+build-error.txt
+mlflow.db
+*.bak
