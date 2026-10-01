@@ -13,7 +13,7 @@
 | TC09 | Process 50 digital PDF invoices | All process successfully and timing is recorded | 50/50 successful; mean 0.046s; P95 0.054s | N |
 | TC10 | Invoice confidence evaluation | Evidence-based score is produced | 50/50 HIGH; average 96.00% | N |
 | TC11 | Invoice compliance validation | Implemented rules return consistent PASS/WARNING/FAIL results | 450 PASS, 0 WARNING, 50 FAIL; all failures are buyer_gstin_format on synthetic identifiers | N |
-| TC12 | Regression test suite | No regression failures | 13/13 tests passed | N |
+| TC12 | Regression test suite | No regression failures | 20/20 tests passed | N |
 
 ## Detailed Example: TC01
 
