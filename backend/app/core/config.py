@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     # SQLite database
     database_url: str = "sqlite:///./documind.db"
 
+    # AI and MLOps settings can be supplied by deployment environment variables.
+    gemini_api_key: str = ""
+    gemini_model: str = ""
+    mlflow_tracking_uri: str = ""
+
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
