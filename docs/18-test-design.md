@@ -20,7 +20,7 @@ This test design defines the verification approach for the AI-Powered Intelligen
 ## 3. Test Levels
 
 ### Unit and regression testing
-Backend services are tested with pytest. The current automated suite has 13 passing tests.
+Backend services are tested with pytest. The current automated suite has 20 passing tests, based on the recorded regression execution.
 
 ### Functional evaluation
 A human-verified set of 50 synthetic GST-style invoices is used to evaluate ten structured invoice fields.
