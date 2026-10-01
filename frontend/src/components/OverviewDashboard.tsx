@@ -16,163 +16,554 @@ type Props = {
   actionBusy: boolean;
 };
 
-export default function OverviewDashboard({ token, userName, documents, metrics, completed, processing, failed, error, onRefresh, onView, actionBusy }: Props) {
+export default function OverviewDashboard({
+  token,
+  userName,
+  documents,
+  metrics,
+  completed,
+  processing,
+  failed,
+  error,
+  onRefresh,
+  onView,
+  actionBusy,
+}: Props) {
   const [recent, setRecent] = useState<DocumentRecord[]>(documents.slice(0, 5));
-  const [workflowStage, setWorkflowStage] = useState<Record<string, "process" | "analyze" | "view">>({});
+  const [workflowStage, setWorkflowStage] = useState<
+    Record<string, "process" | "analyze" | "view">
+  >({});
   const [workspaceSearch, setWorkspaceSearch] = useState("");
-  const [workspaceStatus, setWorkspaceStatus] = useState<"all" | DocumentRecord["status"]>("all");
+  const [workspaceStatus, setWorkspaceStatus] =
+    useState<"all" | DocumentRecord["status"]>("all");
 
-  useEffect(() => setRecent(documents.slice(0, 5)), [documents]);
+  useEffect(() => {
+    setRecent(documents.slice(0, 5));
+  }, [documents]);
+
   useEffect(() => {
     const handleWorkflow = (event: Event) => {
-      const detail = (event as CustomEvent<{ id: string; stage: "process" | "analyze" | "view" }>).detail;
-      if (detail?.id && detail?.stage) setWorkflowStage((current) => ({ ...current, [detail.id]: detail.stage }));
+      const detail = (
+        event as CustomEvent<{
+          id: string;
+          stage: "process" | "analyze" | "view";
+        }>
+      ).detail;
+
+      if (detail?.id && detail?.stage) {
+        setWorkflowStage((current) => ({
+          ...current,
+          [detail.id]: detail.stage,
+        }));
+      }
     };
+
     window.addEventListener("documind:workflow", handleWorkflow);
     return () => window.removeEventListener("documind:workflow", handleWorkflow);
   }, []);
 
-  const typeEntries = Object.entries(metrics?.document_types || {}).sort((a, b) => b[1] - a[1]);
-  const totalTypes = typeEntries.reduce((sum, item) => sum + item[1], 0) || documents.length || 1;
-  const invoiceOnly = !!metrics && metrics.invoice_documents === documents.length && documents.length > 0;
-  const confidence = metrics?.average_invoice_confidence == null ? "—" : Math.round(metrics.average_invoice_confidence * 100) + "%";
+  const typeEntries = Object.entries(metrics?.document_types || {}).sort(
+    (a, b) => b[1] - a[1],
+  );
+
+  const totalTypes =
+    typeEntries.reduce((sum, item) => sum + item[1], 0) ||
+    documents.length ||
+    1;
+
+  const confidence =
+    metrics?.average_invoice_confidence == null
+      ? "—"
+      : Math.round(metrics.average_invoice_confidence * 100) + "%";
+
   const filteredRecent = recent.filter((doc) => {
-    const matchesSearch = doc.filename.toLowerCase().includes(workspaceSearch.toLowerCase().trim());
-    const matchesStatus = workspaceStatus === "all" || doc.status === workspaceStatus;
+    const query = workspaceSearch.toLowerCase().trim();
+    const matchesSearch = doc.filename.toLowerCase().includes(query);
+    const matchesStatus =
+      workspaceStatus === "all" || doc.status === workspaceStatus;
+
     return matchesSearch && matchesStatus;
   });
 
   const donut = typeEntries.length
-    ? typeEntries.map((item, index) => {
-        const colors = ["#258cf4", "#16b887", "#f39a22", "#8456e8", "#e65a8a"];
-        const start = typeEntries.slice(0, index).reduce((sum, entry) => sum + entry[1], 0) / totalTypes * 360;
-        const end = start + item[1] / totalTypes * 360;
-        return colors[index % colors.length] + " " + start + "deg " + end + "deg";
-      }).join(", ")
+    ? typeEntries
+        .map((item, index) => {
+          const colors = [
+            "#258cf4",
+            "#16b887",
+            "#f39a22",
+            "#8456e8",
+            "#e65a8a",
+          ];
+          const start =
+            (typeEntries
+              .slice(0, index)
+              .reduce((sum, entry) => sum + entry[1], 0) /
+              totalTypes) *
+            360;
+          const end = start + (item[1] / totalTypes) * 360;
+
+          return (
+            colors[index % colors.length] +
+            " " +
+            start +
+            "deg " +
+            end +
+            "deg"
+          );
+        })
+        .join(", ")
     : "#e7eef0 0deg 360deg";
 
   function workflow(stage: "process" | "analyze" | "view") {
     const target = recent[0];
     if (!target) return;
-    window.dispatchEvent(new CustomEvent(stage === "view" ? "documind:view" : "documind:" + stage, { detail: target.id }));
+
+    window.dispatchEvent(
+      new CustomEvent(
+        stage === "view" ? "documind:view" : "documind:" + stage,
+        { detail: target.id },
+      ),
+    );
   }
 
   function openDocuments() {
-    document.querySelector<HTMLButtonElement>(".side-nav-item:nth-child(2)")?.click();
+    const button = document.querySelector(
+      ".side-nav-item:nth-child(2)",
+    ) as HTMLButtonElement | null;
+
+    button?.click();
   }
 
-  return <>
-    <section className="overview-welcome">
-      <div>
-        <p className="eyebrow overview-eyebrow">WELCOME BACK, {((userName || "User").split(" ")[0] || "User").toUpperCase()}! <span>👋</span></p>
-        <h2>AI-Powered Intelligent Document Processing</h2>
-        <p>Ingest. Understand. Automate. Turn documents into actionable insights.</p>
-      </div>
-      <div className="welcome-visual">
-        <div className="doc-stack"><span>PDF</span><span>DOCX</span></div>
-        <div className="flow-arrow">→</div>
-        <div className="structured-box"><strong>Structured Data</strong><small>• Invoice Details</small><small>• Line Items</small><small>• Compliance Check</small><small>• Analytics</small></div>
-      </div>
-    </section>
-
-    {error && <div className="alert wide">{error}</div>}
-
-    <section className="overview-kpis">
-      <OverviewKpi icon="▤" label="Total Documents" value={documents.length} hint="Live workspace count" tone="blue" />
-      <OverviewKpi icon="✓" label="Completed" value={completed} hint="Successfully processed" tone="green" />
-      <OverviewKpi icon="◷" label="In Progress" value={processing} hint="Currently processing" tone="indigo" />
-      <OverviewKpi icon="!" label="Needs Attention" value={failed} hint="Requires review" tone="red" />
-      <OverviewKpi icon="✦" label="Avg. Confidence" value={confidence} hint="Extraction quality" tone="purple" />
-    </section>
-
-    <section className="overview-command-grid">
-      <div className="overview-upload-wrap">
-        <div className="overview-section-title"><span className="section-icon">↥</span><div><h3>Upload Document</h3><small>Select a file to start the intelligence workflow.</small></div><span className="info-dot">i</span></div>
-        <div className="overview-upload"><UploadDocument token={token} onUploaded={() => onRefresh()} /></div>
-      </div>
-
-      <div className="overview-workflow">
-        <div className="overview-section-title"><span className="section-icon">✣</span><div><h3>Document Processing Workflow</h3><small>Move from upload to validated results.</small></div></div>
-        <div className="workflow-line">
-          {(() => {
-            const current = recent[0];
-            const stage = current ? workflowStage[current.id] : undefined;
-            const processDone = !!current && (stage === "analyze" || stage === "view");
-            const analyzeDone = !!current && stage === "view";
-            const steps = [
-              ["↥","Upload","Document uploaded",true,false],
-              ["⚙","Process","OCR & extraction",processDone,stage === "process" || processing > 0],
-              ["▣","Analyze","AI analysis completed",analyzeDone,stage === "analyze"],
-              ["✓","Validate","Compliance checks",analyzeDone,analyzeDone],
-              ["◉","View Results","Results & report",analyzeDone,stage === "view"],
-            ] as const;
-            return steps.map(([icon,title,desc,done,active], index) =>
-              <div className={"workflow-node " + (done ? "done" : active ? "active" : "")} key={title}>
-                <span>{done ? "✓" : icon}</span><strong>{title}</strong><small>{desc}</small>{index < steps.length - 1 && <i>→</i>}
-              </div>
-            );
-          })()}
+  return (
+    <>
+      <section className="overview-welcome">
+        <div>
+          <p className="eyebrow overview-eyebrow">
+            WELCOME BACK, {((userName || "User").split(" ")[0] || "User").toUpperCase()}!{" "}
+            <span>👋</span>
+          </p>
+          <h2>AI-Powered Intelligent Document Processing</h2>
+          <p>
+            Ingest. Understand. Automate. Turn documents into actionable
+            insights.
+          </p>
         </div>
-        <div className="workflow-buttons">
-          <button className="workflow-btn blue" disabled={!recent.length || (recent[0].status !== "uploaded" && recent[0].status !== "pending" && recent[0].status !== "failed")} onClick={() => workflow("process")}>▷&nbsp; Process</button>
-          <button className="workflow-btn purple" disabled={!recent.length || recent[0].status !== "completed" || workflowStage[recent[0].id] === "view"} onClick={() => workflow("analyze")}>{workflowStage[recent[0]?.id] === "view" ? "✓ Analyzed" : "▥ Analyze"}</button>
-          <button className="workflow-btn muted-btn" disabled={!recent.length || workflowStage[recent[0]?.id] !== "view"} onClick={() => workflow("view")}>◉&nbsp; View Results</button>
-        </div>
-        <div className={"workflow-progress " + (actionBusy || processing > 0 ? "active" : "")} aria-live="polite">
-          <span className="workflow-progress-dot" />
-          <strong>{actionBusy ? "Processing document..." : processing > 0 ? `${processing} document${processing === 1 ? "" : "s"} processing` : "No documents currently processing"}</strong>
-          <small>{completed} of {documents.length} document{documents.length === 1 ? "" : "s"} completed</small>
-        </div>
-      </div>
-    </section>
 
-    <section className="overview-bottom-grid">
-      <div className="overview-panel recent-panel">
-        <div className="overview-panel-head workspace-head">
-          <div><span className="mini-label">LIVE WORKSPACE</span><h3>Recent Documents</h3><p>Track and manage your documents in real-time.</p></div>
-          <div className="workspace-tools">
-            <input value={workspaceSearch} onChange={(event) => setWorkspaceSearch(event.target.value)} placeholder="Search documents..." aria-label="Search documents" />
-            <select value={workspaceStatus} onChange={(event) => setWorkspaceStatus(event.target.value as "all" | DocumentRecord["status"])} aria-label="Filter document status">
-              <option value="all">All Status</option>
-              <option value="uploaded">Uploaded</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option>
-            </select>
-            <button className="workspace-refresh" onClick={onRefresh} aria-label="Refresh documents" title="Refresh">↻</button>
+        <div className="welcome-visual">
+          <div className="doc-stack">
+            <span>PDF</span>
+            <span>DOCX</span>
+          </div>
+          <div className="flow-arrow">→</div>
+          <div className="structured-box">
+            <strong>Structured Data</strong>
+            <small>• Invoice Details</small>
+            <small>• Line Items</small>
+            <small>• Compliance Check</small>
+            <small>• Analytics</small>
           </div>
         </div>
-        {recent.length === 0 ? <div className="overview-empty">No documents yet. Upload your first document to begin.</div> : filteredRecent.length === 0 ? <div className="overview-empty">No documents match your search or status filter.</div> : <div className="overview-table">
-          <div className="overview-table-head workspace-grid"><span>#</span><span>Document Name</span><span>Size</span><span>Status</span><span>Process</span><span>Analyze</span><span>View</span><span>Confidence</span><span>Actions</span></div>
-          {filteredRecent.map((doc, index) => {
-            const stage = workflowStage[doc.id];
-            const processDone = doc.status === "completed" || stage === "analyze" || stage === "view";
-            const analyzeDone = stage === "view";
-            return <div className="overview-table-row workspace-grid" key={doc.id}>
-              <span>{index + 1}</span><strong title={doc.filename}>{doc.filename}</strong><span>{formatBytes(doc.file_size)}</span>
-              <span className={"overview-status " + doc.status}>● {doc.status === "completed" ? "Completed" : doc.status}</span>
-              <span className={"workspace-step " + (processDone ? "done" : doc.status === "processing" ? "active" : "")}>{processDone ? "✓ 100%" : doc.status === "processing" ? "◌ Running" : "—"}</span>
-              <span className={"workspace-step " + (analyzeDone ? "done" : "")}>{analyzeDone ? "✓ Done" : doc.status === "completed" ? "Ready" : "—"}</span>
-              <span className={"workspace-view " + (analyzeDone ? "ready" : "")}>{analyzeDone ? "✓ Ready" : "—"}</span>
-              <span>{doc.status === "completed" ? confidence : "—"}</span><button onClick={() => onView(doc)}>◉&nbsp; View</button>
-            </div>;
-          })}
-        </div>
-      </div>
+      </section>
 
-      <div className="overview-panel distribution-panel">
-        <div className="overview-panel-head">
-          <div><span className="mini-label">DOCUMENT MIX</span><h3>Document Type Distribution</h3></div>
-          <select defaultValue="all" aria-label="Distribution range"><option value="all">All Time</option><option value="30">Last 30 Days</option></select>
+      {error && <div className="alert wide">{error}</div>}
+
+      <section className="overview-kpis">
+        <OverviewKpi
+          icon="▤"
+          label="Total Documents"
+          value={documents.length}
+          hint="Live workspace count"
+          tone="blue"
+        />
+        <OverviewKpi
+          icon="✓"
+          label="Completed"
+          value={completed}
+          hint="Successfully processed"
+          tone="green"
+        />
+        <OverviewKpi
+          icon="◷"
+          label="In Progress"
+          value={processing}
+          hint="Currently processing"
+          tone="indigo"
+        />
+        <OverviewKpi
+          icon="!"
+          label="Needs Attention"
+          value={failed}
+          hint="Requires review"
+          tone="red"
+        />
+        <OverviewKpi
+          icon="✦"
+          label="Avg. Confidence"
+          value={confidence}
+          hint="Extraction quality"
+          tone="purple"
+        />
+      </section>
+
+      <section className="overview-command-grid">
+        <div className="overview-upload-wrap">
+          <div className="overview-section-title">
+            <span className="section-icon">↥</span>
+            <div>
+              <h3>Upload Document</h3>
+              <small>Select a file to start the intelligence workflow.</small>
+            </div>
+            <span className="info-dot">i</span>
+          </div>
+          <div className="overview-upload">
+            <UploadDocument token={token} onUploaded={() => onRefresh()} />
+          </div>
         </div>
-        <div className="donut-wrap">
-          <div className="donut" style={{ background: "conic-gradient(" + donut + ")" }}><div><strong>{documents.length}</strong><span>Documents</span></div></div>
-          <div className="donut-legend">{typeEntries.length ? typeEntries.map((item, i) => <div key={item[0]}><span className={"legend-dot dot-" + (i % 5)} /><b>{item[0]}</b><strong>{item[1]} ({Math.round(item[1] / totalTypes * 100)}%)</strong></div>) : <div><span className="legend-dot dot-0" /><b>Documents</b><strong>{documents.length}</strong></div>}</div>
+
+        <div className="overview-workflow">
+          <div className="overview-section-title">
+            <span className="section-icon">✣</span>
+            <div>
+              <h3>Document Processing Workflow</h3>
+              <small>Move from upload to validated results.</small>
+            </div>
+          </div>
+
+          <div className="workflow-line">
+            {(() => {
+              const current = recent[0];
+              const stage = current ? workflowStage[current.id] : undefined;
+              const processDone =
+                !!current && (stage === "analyze" || stage === "view");
+              const analyzeDone = !!current && stage === "view";
+
+              const steps = [
+                ["↥", "Upload", "Document uploaded", true, false],
+                [
+                  "⚙",
+                  "Process",
+                  "OCR & extraction",
+                  processDone,
+                  stage === "process" || processing > 0,
+                ],
+                [
+                  "▣",
+                  "Analyze",
+                  "AI analysis completed",
+                  analyzeDone,
+                  stage === "analyze",
+                ],
+                [
+                  "✓",
+                  "Validate",
+                  "Compliance checks",
+                  analyzeDone,
+                  analyzeDone,
+                ],
+                [
+                  "◉",
+                  "View Results",
+                  "Results & report",
+                  analyzeDone,
+                  stage === "view",
+                ],
+              ] as const;
+
+              return steps.map(
+                ([icon, title, desc, done, active], index) => (
+                  <div
+                    className={
+                      "workflow-node " +
+                      (done ? "done" : active ? "active" : "")
+                    }
+                    key={title}
+                  >
+                    <span>{done ? "✓" : icon}</span>
+                    <strong>{title}</strong>
+                    <small>{desc}</small>
+                    {index < steps.length - 1 && <i>→</i>}
+                  </div>
+                ),
+              );
+            })()}
+          </div>
+
+          <div className="workflow-buttons">
+            <button
+              className="workflow-btn blue"
+              disabled={
+                !recent.length ||
+                (recent[0].status !== "uploaded" &&
+                  recent[0].status !== "pending" &&
+                  recent[0].status !== "failed")
+              }
+              onClick={() => workflow("process")}
+            >
+              ▷&nbsp; Process
+            </button>
+
+            <button
+              className="workflow-btn purple"
+              disabled={
+                !recent.length ||
+                recent[0].status !== "completed" ||
+                workflowStage[recent[0].id] === "view"
+              }
+              onClick={() => workflow("analyze")}
+            >
+              {workflowStage[recent[0]?.id] === "view"
+                ? "✓ Analyzed"
+                : "▥ Analyze"}
+            </button>
+
+            <button
+              className="workflow-btn muted-btn"
+              disabled={
+                !recent.length || workflowStage[recent[0]?.id] !== "view"
+              }
+              onClick={() => workflow("view")}
+            >
+              ◉&nbsp; View Results
+            </button>
+          </div>
+
+          <div
+            className={
+              "workflow-progress " +
+              (actionBusy || processing > 0 ? "active" : "")
+            }
+            aria-live="polite"
+          >
+            <span className="workflow-progress-dot" />
+            <strong>
+              {actionBusy
+                ? "Processing document..."
+                : processing > 0
+                  ? `${processing} document${processing === 1 ? "" : "s"} processing`
+                  : "No documents currently processing"}
+            </strong>
+            <small>
+              {completed} of {documents.length} document
+              {documents.length === 1 ? "" : "s"} completed
+            </small>
+          </div>
         </div>
-      </div>
-    </section>
-  </>;
+      </section>
+
+      <section className="overview-bottom-grid">
+        <div className="overview-panel recent-panel">
+          <div className="overview-panel-head workspace-head">
+            <div>
+              <span className="mini-label">LIVE WORKSPACE</span>
+              <h3>Recent Documents</h3>
+              <p>Track and manage your documents in real-time.</p>
+            </div>
+
+            <div className="workspace-tools">
+              <input
+                value={workspaceSearch}
+                onChange={(event) => setWorkspaceSearch(event.target.value)}
+                placeholder="Search documents..."
+                aria-label="Search documents"
+              />
+
+              <select
+                value={workspaceStatus}
+                onChange={(event) =>
+                  setWorkspaceStatus(
+                    event.target.value as "all" | DocumentRecord["status"],
+                  )
+                }
+                aria-label="Filter document status"
+              >
+                <option value="all">All Status</option>
+                <option value="uploaded">Uploaded</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+              </select>
+
+              <button
+                className="workspace-refresh"
+                onClick={onRefresh}
+                aria-label="Refresh documents"
+                title="Refresh"
+              >
+                ↻
+              </button>
+            </div>
+          </div>
+
+          {recent.length === 0 ? (
+            <div className="overview-empty">
+              No documents yet. Upload your first document to begin.
+            </div>
+          ) : filteredRecent.length === 0 ? (
+            <div className="overview-empty">
+              No documents match your search or status filter.
+            </div>
+          ) : (
+            <div className="overview-table">
+              <div className="overview-table-head workspace-grid">
+                <span>#</span>
+                <span>Document Name</span>
+                <span>Size</span>
+                <span>Status</span>
+                <span>Process</span>
+                <span>Analyze</span>
+                <span>View</span>
+                <span>Confidence</span>
+                <span>Actions</span>
+              </div>
+
+              {filteredRecent.map((doc, index) => {
+                const stage = workflowStage[doc.id];
+                const processDone =
+                  doc.status === "completed" ||
+                  stage === "analyze" ||
+                  stage === "view";
+                const analyzeDone = stage === "view";
+
+                return (
+                  <div
+                    className="overview-table-row workspace-grid"
+                    key={doc.id}
+                  >
+                    <span>{index + 1}</span>
+                    <strong title={doc.filename}>{doc.filename}</strong>
+                    <span>{formatBytes(doc.file_size)}</span>
+
+                    <span className={"overview-status " + doc.status}>
+                      ●{" "}
+                      {doc.status === "completed" ? "Completed" : doc.status}
+                    </span>
+
+                    <span
+                      className={
+                        "workspace-step " +
+                        (processDone
+                          ? "done"
+                          : doc.status === "processing"
+                            ? "active"
+                            : "")
+                      }
+                    >
+                      {processDone
+                        ? "✓ 100%"
+                        : doc.status === "processing"
+                          ? "◌ Running"
+                          : "—"}
+                    </span>
+
+                    <span
+                      className={
+                        "workspace-step " + (analyzeDone ? "done" : "")
+                      }
+                    >
+                      {analyzeDone
+                        ? "✓ Done"
+                        : doc.status === "completed"
+                          ? "Ready"
+                          : "—"}
+                    </span>
+
+                    <span
+                      className={
+                        "workspace-view " + (analyzeDone ? "ready" : "")
+                      }
+                    >
+                      {analyzeDone ? "✓ Ready" : "—"}
+                    </span>
+
+                    <span>
+                      {doc.status === "completed" ? confidence : "—"}
+                    </span>
+
+                    <button onClick={() => onView(doc)}>
+                      ◉&nbsp; View
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="overview-panel distribution-panel">
+          <div className="overview-panel-head">
+            <div>
+              <span className="mini-label">DOCUMENT MIX</span>
+              <h3>Document Type Distribution</h3>
+            </div>
+
+            <select defaultValue="all" aria-label="Distribution range">
+              <option value="all">All Time</option>
+              <option value="30">Last 30 Days</option>
+            </select>
+          </div>
+
+          <div className="donut-wrap">
+            <div
+              className="donut"
+              style={{ background: "conic-gradient(" + donut + ")" }}
+            >
+              <div>
+                <strong>{documents.length}</strong>
+                <span>Documents</span>
+              </div>
+            </div>
+
+            <div className="donut-legend">
+              {typeEntries.length ? (
+                typeEntries.map((item, i) => (
+                  <div key={item[0]}>
+                    <span className={"legend-dot dot-" + (i % 5)} />
+                    <b>{item[0]}</b>
+                    <strong>
+                      {item[1]} ({Math.round((item[1] / totalTypes) * 100)}%)
+                    </strong>
+                  </div>
+                ))
+              ) : (
+                <div>
+                  <span className="legend-dot dot-0" />
+                  <b>Documents</b>
+                  <strong>{documents.length}</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
 }
 
-function OverviewKpi({ icon, label, value, hint, tone }: { icon: string; label: string; value: string | number; hint: string; tone: string }) {
-  return <div className={"overview-kpi " + tone}><span className="kpi-icon">{icon}</span><div><small>{label}</small><strong>{value}</strong><em>{hint}</em></div></div>;
+function OverviewKpi({
+  icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  value: string | number;
+  hint: string;
+  tone: string;
+}) {
+  return (
+    <div className={"overview-kpi " + tone}>
+      <span className="kpi-icon">{icon}</span>
+      <div>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <em>{hint}</em>
+      </div>
+    </div>
+  );
 }
 
 function formatBytes(bytes: number) {
