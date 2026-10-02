@@ -1,0 +1,10 @@
+{
+  "status": "recorded_result",
+  "source": "docs/17-submission-readiness.md",
+  "dataset": "6 synthetic bilingual/Hindi document images",
+  "language_config": "Tesseract eng+hin",
+  "business_field_presences_retained": 18,
+  "business_field_presences_evaluated": 48,
+  "retention_percent": 37.5,
+  "note": "Small synthetic evaluation; not general Hindi OCR accuracy."
+}
