@@ -1,0 +1,12 @@
+{
+  "status": "recorded_result",
+  "source": "Final_Submission/03_Evaluation_Reports/22-handwritten-ocr-evaluation.md",
+  "ocr_engine": "Tesseract 5.5.3",
+  "language": "eng",
+  "samples": 1,
+  "psm_modes": [6, 11],
+  "evaluated_fields": 8,
+  "exact_matches": 0,
+  "exact_field_match_percent": 0.0,
+  "note": "Pilot result from one handwritten invoice-style sample; not representative of real-world handwriting."
+}
