@@ -1,0 +1,14 @@
+{
+  "status": "recorded_result",
+  "source": "Final_Submission/03_Evaluation_Reports/21-test-evidence-report.md",
+  "dataset": "50 invoices",
+  "average_confidence_percent": 96.0,
+  "high_confidence_count": 50,
+  "compliance": {
+    "pass": 450,
+    "warning": 0,
+    "fail": 50,
+    "failure_rule": "buyer_gstin_format"
+  },
+  "note": "Compliance failures are documented as an interaction between strict GSTIN-format validation and synthetic test identifiers."
+}
